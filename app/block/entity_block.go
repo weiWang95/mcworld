@@ -6,6 +6,7 @@ import (
 	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
+	"github.com/g3n/engine/texture"
 )
 
 type EntityBlock struct {
@@ -26,18 +27,19 @@ func (b *EntityBlock) SetVisible(state bool) {
 	b.mesh.SetVisible(state)
 }
 
-func (b *EntityBlock) AddTo(n core.INode, materialPath string) {
+func (b *EntityBlock) AddTo(n core.INode, tex *texture.Texture2D) {
 	cube := geometry.NewCube(1)
-	mat := material.NewStandard(&math32.Color{1, 1, 1})
 
-	// tex, err := texture.NewTexture2DFromImage(materialPath)
-	// if err != nil {
-	// 	panic(fmt.Sprintf("Error:%s loading texture:%s \n", err, materialPath))
-	// }
-	// mat.AddTexture(tex)
+	mat := material.NewStandard(&math32.Color{1, 1, 1})
+	mat.AddTexture(tex)
 
 	b.mesh = graphic.NewMesh(cube, mat)
 	b.mesh.SetPositionVec(&b.Pos)
 
 	n.GetNode().Add(b.mesh)
+}
+
+func (b *EntityBlock) RemoveFrom(n core.INode) {
+	b.mesh.Dispose()
+	n.GetNode().Remove(b.mesh)
 }

@@ -22,7 +22,9 @@ type IBlock interface {
 	Transparent() bool
 	SetVisible(state bool)
 	SetPosition(pos math32.Vector3)
+	GetPosition() math32.Vector3
 	AddTo(n core.INode)
+	RemoveFrom(n core.INode)
 }
 
 func RegisterBlock(id BlockId, b IBlock) {

@@ -1,7 +1,7 @@
-package world
+package app
 
 import (
-	"github.com/weiWang95/mcworld/level/world/block"
+	"github.com/weiWang95/mcworld/app/block"
 	"github.com/weiWang95/mcworld/lib/perlin"
 )
 
@@ -24,9 +24,9 @@ func (wg *WorldGenerator) Setup(seed int64) {
 }
 
 func (wg *WorldGenerator) GetBlock(x, y, z float64) block.BlockId {
-	h := wg.p.Noise2D(0.015*x, 0.015*z)*(MAX_GROUND_HEIGHT-MIN_GROUND_HEIGHT) + MIN_GROUND_HEIGHT
+	h := (wg.p.Noise2D(0.015*x, 0.015*z)+1)*(MAX_GROUND_HEIGHT-MIN_GROUND_HEIGHT) + MIN_GROUND_HEIGHT
 	if int64(y) > int64(h) {
-		return block.BlockAir
+		return 0
 	}
 
 	return block.BlockSoil

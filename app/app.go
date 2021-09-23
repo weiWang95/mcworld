@@ -7,19 +7,18 @@ import (
 	"time"
 
 	"github.com/g3n/engine/app"
-	"github.com/g3n/engine/camera"
 	"github.com/g3n/engine/core"
 	"github.com/g3n/engine/gls"
 	"github.com/g3n/engine/gui"
-	"github.com/g3n/engine/light"
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/renderer"
 	"github.com/g3n/engine/util"
 	"github.com/g3n/engine/util/helper"
 	"github.com/g3n/engine/util/logger"
 	"github.com/g3n/engine/window"
-	"github.com/weiWang95/mcworld/player"
 )
+
+var instance *App
 
 type App struct {
 	*app.Application
@@ -27,26 +26,30 @@ type App struct {
 	log        *logger.Logger
 	dirData    string // Full path of the data directory
 	scene      *core.Node
-	curLevel   ILevel
+	curWorld   *World
 	grid       *helper.Grid
-	ambLight   *light.Ambient
 	frameRater *util.FrameRater // Render loop frame rater
 
 	// GUI
 	mainPanel *gui.Panel
 	labelFPS  *gui.Label // header FPS label
 
-	// Camera and Control
-	camera *camera.Camera
-	orbit  *camera.OrbitControl
-
-	// Player
-	player *player.Player
+	// OldPlayer
+	// player *OldPlayer
+	player *Player
 
 	// Module
 }
 
+func Instance() *App {
+	return instance
+}
+
 func Create() *App {
+	if instance != nil {
+		return instance
+	}
+
 	a := new(App)
 	a.Application = app.App(800, 600, "Mc World")
 
@@ -54,6 +57,9 @@ func Create() *App {
 	a.log.AddWriter(logger.NewConsole(false))
 	a.log.SetFormat(logger.FTIME | logger.FMICROS)
 	a.log.SetLevel(logger.DEBUG)
+
+	a.Gls().Enable(gls.CULL_FACE)
+	a.Gls().Enable(gls.DEPTH_TEST)
 
 	// Create Scene
 	a.scene = core.NewNode()
@@ -63,20 +69,24 @@ func Create() *App {
 	a.scene.Add(a.grid)
 
 	// Create camera
-	w, h := a.GetSize()
-	aspect := float32(w) / float32(h)
-	a.camera = camera.New(aspect)
-	a.scene.Add(a.camera)
-	a.orbit = camera.NewOrbitControl(a.camera)
-
-	// Create and add ambient light to scene
-	a.ambLight = light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.5)
-	a.scene.Add(a.ambLight)
+	// w, h := a.GetSize()
+	// aspect := float32(w) / float32(h)
+	// a.camera = camera.New(aspect)
+	// a.scene.Add(a.camera)
+	// a.orbit = camera.NewOrbitControl(a.camera)
 
 	// Create frame rater
 	a.frameRater = util.NewFrameRater(60)
 
-	a.player = player.NewPlayer()
+	// a.player = NewOldPlayer()
+	// a.player.ResetPosition(*math32.NewVector3(0, 50, 0))
+	// a.scene.Add(a.player)
+	// a.scene.Add(a.player.Camera)
+
+	a.player = NewPlayer()
+	a.player.SetPositionVec(*math32.NewVector3(0, 50, 0))
+	a.scene.Add(a.player)
+	a.scene.Add(a.player.Camera)
 
 	a.buildGui()
 
@@ -89,17 +99,16 @@ func Create() *App {
 
 	a.setupScene()
 
-	a.curLevel = Levels["world"]
-	a.curLevel.Start(a)
+	a.curWorld = NewWorld()
+	a.curWorld.Start(a)
 
-	a.Gls().Enable(gls.CULL_FACE)
-
-	return a
+	instance = a
+	return instance
 }
 
 func (a *App) setupScene() {
-	if a.curLevel != nil {
-		a.curLevel.Cleanup(a)
+	if a.curWorld != nil {
+		a.curWorld.Cleanup(a)
 	}
 
 	a.UnsubscribeAllID(a)
@@ -112,23 +121,6 @@ func (a *App) setupScene() {
 
 	// Reset renderer z-sorting flag
 	a.Renderer().SetObjectSorting(true)
-
-	// Reset ambient light
-	a.ambLight.SetColor(&math32.Color{1.0, 1.0, 1.0})
-	a.ambLight.SetIntensity(0.5)
-	a.ambLight.SetDirection(-1, -1, -1)
-
-	// Reset Camera
-	a.camera.SetPosition(0, 0.2, 3)
-	a.camera.UpdateSize(5)
-	a.camera.LookAt(&math32.Vector3{0, 0, 0}, &math32.Vector3{0, 1, 0})
-	a.camera.SetProjection(camera.Perspective)
-	a.orbit.Reset()
-
-	// plane := geometry.NewPlane(100.0, 100.0)
-	// mat := material.NewStandard(math32.NewColor("grey"))
-	// mesh := graphic.NewMesh(plane, mat)
-	// a.scene.Add(mesh)
 
 	// Create and add an axis helper to the scene
 	a.scene.Add(helper.NewAxes(1))
@@ -184,12 +176,16 @@ func (a *App) Update(rend *renderer.Renderer, deltaTime time.Duration) {
 	a.Gls().Clear(gls.COLOR_BUFFER_BIT | gls.DEPTH_BUFFER_BIT | gls.STENCIL_BUFFER_BIT) // TODO maybe do inside renderer, and allow customization
 
 	// Update the current running demo if any
-	if a.curLevel != nil {
-		a.curLevel.Update(a, deltaTime)
+	if a.curWorld != nil {
+		a.curWorld.Update(a, deltaTime)
+	}
+
+	if a.player != nil {
+		a.player.Update(a, deltaTime)
 	}
 
 	// Render scene
-	err := rend.Render(a.scene, a.camera)
+	err := rend.Render(a.scene, a.player.Camera)
 	if err != nil {
 		panic(err)
 	}
@@ -231,12 +227,37 @@ func (a *App) Log() *logger.Logger {
 	return a.log
 }
 
-func (a *App) Player() *player.Player {
+func (a *App) Player() *Player {
 	return a.player
+}
+
+func (a *App) World() *World {
+	return a.curWorld
 }
 
 // DirData returns the base directory for data
 func (a *App) DirData() string {
 
 	return a.dirData
+}
+
+func (a *App) OnWindowSize(evname string, ev interface{}) {
+	w, h := a.GetFramebufferSize()
+	aspect := float32(w) / float32(h)
+
+	a.log.Debug("OnWindowSize: w: %d, h: %d, camera aspect: %.6f", w, h, aspect)
+
+	a.Gls().Viewport(0, 0, int32(w), int32(h))
+	a.player.Camera.SetAspect(aspect)
+
+	a.mainPanel.SetSize(float32(w), float32(h))
+}
+
+func (a *App) OnKeyDown(evname string, ev interface{}) {
+	kev := ev.(*window.KeyEvent)
+
+	switch kev.Key {
+	case window.KeyEscape:
+		a.Exit()
+	}
 }

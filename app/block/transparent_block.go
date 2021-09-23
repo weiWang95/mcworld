@@ -21,3 +21,7 @@ func (b *TransparentBlock) SetVisible(state bool) {
 func (b *TransparentBlock) AddTo(n core.INode, materialPath string) {
 
 }
+
+func (b *TransparentBlock) RemoveFrom(n core.INode) {
+
+}

@@ -19,3 +19,7 @@ func (b *Block) SetPosition(pos math32.Vector3) {
 	b.Pos.Y = pos.Y
 	b.Pos.Z = pos.Z
 }
+
+func (b *Block) GetPosition() math32.Vector3 {
+	return b.Pos
+}

@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/g3n/engine/core"
+	"github.com/weiWang95/mcworld/app/loader"
 )
 
 func init() {
@@ -16,6 +17,10 @@ func (b *Soil) Init() {
 }
 
 func (b *Soil) AddTo(n core.INode) {
-	path := ""
-	b.EntityBlock.AddTo(n, path)
+	tex := loader.LoadBlockTexture(uint64(BlockSoil))
+	b.EntityBlock.AddTo(n, tex)
+}
+
+func (b *Soil) RemoveFrom(n core.INode) {
+	b.EntityBlock.RemoveFrom(n)
 }
