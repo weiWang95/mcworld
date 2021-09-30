@@ -6,7 +6,11 @@ import (
 
 	"github.com/g3n/engine/camera"
 	"github.com/g3n/engine/core"
+	"github.com/g3n/engine/geometry"
+	"github.com/g3n/engine/gls"
+	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/gui"
+	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/window"
 )
@@ -36,8 +40,9 @@ type Player struct {
 	core.Node
 	core.Dispatcher
 
-	Model  IControl
-	Camera *camera.Camera
+	Model     IControl
+	Camera    *camera.Camera
+	wreckLine *graphic.Lines
 
 	up     math32.Vector3
 	farPos math32.Vector3
@@ -319,6 +324,7 @@ func (p *Player) onMouse(evname string, ev interface{}) {
 
 // onCursor is called when an OnCursor event is received.
 func (p *Player) onCursor(evname string, ev interface{}) {
+	gui.Manager().SetCursorFocus(p)
 
 	// If nothing enabled ignore event
 	if p.enabled == OrbitNone || p.state == stateNone {
@@ -396,4 +402,29 @@ func (p *Player) winSize() float32 {
 		size = width
 	}
 	return float32(size)
+}
+
+func (p *Player) addWreckLine() {
+	// Creates geometry
+	geom := geometry.NewGeometry()
+	vertices := math32.NewArrayF32(0, 16)
+	vertices.Append(
+		0, 0, 0,
+		MaxControlDistance, 0, 0,
+	)
+	colors := math32.NewArrayF32(0, 16)
+	colors.Append(
+		1.0, 0.0, 0.0, // red
+		1.0, 0.0, 0.0,
+	)
+	geom.AddVBO(gls.NewVBO(vertices).AddAttrib(gls.VertexPosition))
+	geom.AddVBO(gls.NewVBO(colors).AddAttrib(gls.VertexColor))
+
+	// Creates basic material
+	mat := material.NewBasic()
+
+	// Creates lines with the specified geometry and material
+	p.wreckLine = graphic.NewLines(geom, mat)
+	p.wreckLine.SetPositionVec(p.Model.GetViewport())
+	p.Add(p.wreckLine)
 }

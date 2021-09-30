@@ -41,7 +41,6 @@ func (p *PlayerModel) Start(a *App) {
 	p.Add(p.target)
 
 	p.addAxis()
-	p.addWreckLine()
 }
 
 func (p *PlayerModel) Update(a *App, t time.Duration) {
@@ -73,31 +72,6 @@ func (p *PlayerModel) addAxis() {
 	// Creates lines with the specified geometry and material
 	p.axis = graphic.NewLines(geom, mat)
 	p.Add(p.axis)
-}
-
-func (p *PlayerModel) addWreckLine() {
-	// Creates geometry
-	geom := geometry.NewGeometry()
-	vertices := math32.NewArrayF32(0, 16)
-	vertices.Append(
-		0, 0, 0,
-		MaxControlDistance, 0, 0,
-	)
-	colors := math32.NewArrayF32(0, 16)
-	colors.Append(
-		1.0, 0.0, 0.0, // red
-		1.0, 0.0, 0.0,
-	)
-	geom.AddVBO(gls.NewVBO(vertices).AddAttrib(gls.VertexPosition))
-	geom.AddVBO(gls.NewVBO(colors).AddAttrib(gls.VertexColor))
-
-	// Creates basic material
-	mat := material.NewBasic()
-
-	// Creates lines with the specified geometry and material
-	p.wreckLine = graphic.NewLines(geom, mat)
-	p.wreckLine.SetPositionVec(p.GetViewport())
-	p.Add(p.wreckLine)
 }
 
 func (p *PlayerModel) GetPosition() *math32.Vector3 {

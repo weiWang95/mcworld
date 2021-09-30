@@ -38,7 +38,7 @@ type App struct {
 	// player *OldPlayer
 	player *Player
 
-	// Module
+	debugMode bool
 }
 
 func Instance() *App {
@@ -233,6 +233,10 @@ func (a *App) Player() *Player {
 
 func (a *App) World() *World {
 	return a.curWorld
+}
+
+func (a *App) IsDebugMode() bool {
+	return a.debugMode
 }
 
 // DirData returns the base directory for data

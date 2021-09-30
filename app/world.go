@@ -24,6 +24,7 @@ type World struct {
 	ambLight   *light.Ambient
 
 	wg IWorldGenerator
+	cm *ChunkManager
 
 	activePos   math32.Vector3
 	activeAreas [][]*Area
@@ -44,18 +45,20 @@ func (w *World) Start(a *App) {
 func (w *World) Update(a *App, t time.Duration) {
 	w.updateLight(a, t)
 
-	playerAreaPos := GetAreaPosByPos(*a.Player().GetPosition())
-	if playerAreaPos.X != w.activePos.X || playerAreaPos.Z != w.activePos.Z {
-		w.loadAreas(playerAreaPos)
-		w.refreshAreas()
-		w.activePos = playerAreaPos
-	}
+	w.cm.Update(a, t)
 
-	for i := 0; i < len(w.activeAreas); i++ {
-		for j := 0; j < len(w.activeAreas[i]); j++ {
-			w.activeAreas[i][j].Update()
-		}
-	}
+	// playerAreaPos := GetAreaPosByPos(*a.Player().GetPosition())
+	// if playerAreaPos.X != w.activePos.X || playerAreaPos.Z != w.activePos.Z {
+	// 	w.loadAreas(playerAreaPos)
+	// 	w.refreshAreas()
+	// 	w.activePos = playerAreaPos
+	// }
+
+	// for i := 0; i < len(w.activeAreas); i++ {
+	// 	for j := 0; j < len(w.activeAreas[i]); j++ {
+	// 		w.activeAreas[i][j].Update()
+	// 	}
+	// }
 }
 
 func (w *World) Cleanup(a *App) {
@@ -68,9 +71,13 @@ func (w *World) setup(a *App) {
 	seed := time.Now().UnixNano()
 	w.setupWorldGenerator(seed)
 
-	w.activePos = math32.Vector3{}
-	w.loadAreas(w.activePos)
-	w.refreshAreas()
+	w.cm = NewChunkManager()
+	w.cm.Start(a)
+	w.Add(w.cm)
+
+	// w.activePos = math32.Vector3{}
+	// w.loadAreas(w.activePos)
+	// w.refreshAreas()
 }
 
 func (w *World) loadAreas(pos math32.Vector3) {
@@ -227,12 +234,12 @@ func (w *World) GetBlockByVec(vec math32.Vector3) block.IBlock {
 }
 
 func (w *World) GetBlockByPosition(x, y, z float32) block.IBlock {
-	area := w.getArea(x, z)
-	if area == nil {
+	chunk := w.cm.GetChunk(x, y, z)
+	if chunk == nil {
 		return nil
 	}
 
-	return area.GetBlock(x, y, z)
+	return chunk.GetBlock(x, y, z)
 }
 
 func (w *World) activeAreasLen() int64 {
@@ -241,6 +248,12 @@ func (w *World) activeAreasLen() int64 {
 
 func (w *World) WreckBlock(pos math32.Vector3) {
 	w.Debug("wreck block -> %v", pos)
-	area := w.getArea(pos.X, pos.Z)
-	area.ReplaceBlock(pos, nil)
+	// area := w.getArea(pos.X, pos.Z)
+	// area.ReplaceBlock(pos, nil)
+	chunk := w.cm.GetChunk(pos.X, pos.Y, pos.Z)
+	chunk.ReplaceBlock(pos, nil)
+}
+
+func (w *World) WorldGenerator() IWorldGenerator {
+	return w.wg
 }

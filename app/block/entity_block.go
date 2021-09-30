@@ -40,6 +40,6 @@ func (b *EntityBlock) AddTo(n core.INode, tex *texture.Texture2D) {
 }
 
 func (b *EntityBlock) RemoveFrom(n core.INode) {
-	b.mesh.Dispose()
 	n.GetNode().Remove(b.mesh)
+	b.mesh.Dispose()
 }
