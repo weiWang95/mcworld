@@ -17,8 +17,8 @@ func (b *Soil) Init() {
 }
 
 func (b *Soil) AddTo(n core.INode) {
-	tex := loader.LoadBlockTexture(uint64(BlockSoil))
-	b.EntityBlock.AddTo(n, tex)
+	mat := loader.LoadBlockMaterial(uint64(BlockSoil))
+	b.EntityBlock.AddTo(n, mat)
 }
 
 func (b *Soil) RemoveFrom(n core.INode) {

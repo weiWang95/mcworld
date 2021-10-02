@@ -24,7 +24,7 @@ const (
 
 const (
 	CHUNK_WIDTH  int64 = 16
-	CHUNK_HEIGHT int64 = 60
+	CHUNK_HEIGHT int64 = 40
 )
 
 type Chunk struct {

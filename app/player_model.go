@@ -14,9 +14,8 @@ import (
 type PlayerModel struct {
 	core.Node
 
-	target    core.INode
-	axis      *graphic.Lines
-	wreckLine *graphic.Lines
+	target core.INode
+	axis   *graphic.Lines
 
 	w        float32
 	h        float32
@@ -35,7 +34,7 @@ func NewPlayerModel() *PlayerModel {
 }
 
 func (p *PlayerModel) Start(a *App) {
-	box := geometry.NewBox(1, 2, 1)
+	box := geometry.NewBox(1, 1, 1)
 	mat := material.NewStandard(math32.NewColor("red"))
 	p.target = graphic.NewMesh(box, mat)
 	p.Add(p.target)
@@ -80,7 +79,9 @@ func (p *PlayerModel) GetPosition() *math32.Vector3 {
 }
 
 func (p *PlayerModel) SetPosition(pos *math32.Vector3) {
-	p.Node.SetPosition(pos.X, pos.Y, pos.Z)
+	p.Node.SetPositionVec(pos)
+	p.target.GetNode().SetPositionVec(pos)
+	p.axis.SetPositionVec(pos)
 }
 
 func (p *PlayerModel) SetFace(face *math32.Vector3) {

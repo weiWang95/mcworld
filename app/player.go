@@ -15,6 +15,9 @@ import (
 	"github.com/g3n/engine/window"
 )
 
+const PLAYER_JUMP_SPEED = 8
+const MaxControlDistance = 8
+
 type OrbitEnabled int
 
 // The possible control types.
@@ -112,6 +115,7 @@ func (p *Player) Start(a *App) {
 	p.Add(p.Model)
 
 	a.Scene().Add(p)
+	a.Scene().Add(p.Camera)
 }
 
 func (p *Player) Update(a *App, t time.Duration) {

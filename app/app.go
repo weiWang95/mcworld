@@ -84,9 +84,10 @@ func Create() *App {
 	// a.scene.Add(a.player.Camera)
 
 	a.player = NewPlayer()
+	a.player.Start(a)
 	a.player.SetPositionVec(*math32.NewVector3(0, 50, 0))
-	a.scene.Add(a.player)
-	a.scene.Add(a.player.Camera)
+	// a.scene.Add(a.player)
+	// a.scene.Add(a.player.Camera)
 
 	a.buildGui()
 

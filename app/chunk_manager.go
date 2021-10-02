@@ -27,7 +27,8 @@ type ChunkManager struct {
 	UnloadingChunkMap map[ChunkPos]*UnloadingChunk
 
 	// ticker
-	loadTicker *TickChecker
+	loadTicker    *TickChecker
+	loadingTicker *TickChecker
 }
 
 var _ IRender = (*ChunkManager)(nil)
@@ -37,7 +38,7 @@ func NewChunkManager() *ChunkManager {
 
 	cm.Node = *core.NewNode()
 
-	cm.loadDistance = 3
+	cm.loadDistance = 2
 	cm.renderDistance = 1
 
 	cm.loadingChunkMap = make(map[ChunkPos]interface{})
@@ -45,6 +46,7 @@ func NewChunkManager() *ChunkManager {
 	cm.UnloadingChunkMap = make(map[ChunkPos]*UnloadingChunk)
 
 	cm.loadTicker = NewTickChecker(4)
+	cm.loadingTicker = NewTickChecker(1)
 
 	return cm
 }
@@ -56,7 +58,7 @@ func (cm *ChunkManager) Start(a *App) {
 func (cm *ChunkManager) Update(a *App, t time.Duration) {
 	if cm.loadTicker.Next(t) {
 		cm.checkAndLoadChunks(a, a.Player().GetPosition())
-	} else {
+	} else if cm.loadingTicker.Next(t) {
 		cm.StepLoadChunk(a)
 	}
 }
