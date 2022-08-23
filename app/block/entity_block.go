@@ -5,12 +5,14 @@ import (
 	"github.com/g3n/engine/geometry"
 	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/material"
+	"github.com/g3n/engine/math32"
 )
 
 type EntityBlock struct {
 	Block
 
 	mesh *graphic.Mesh
+	box  *graphic.Lines
 }
 
 func (b *EntityBlock) Init() {
@@ -29,7 +31,8 @@ func (b *EntityBlock) AddTo(n core.INode, mat material.IMaterial) {
 	cube := geometry.NewCube(1)
 
 	b.mesh = graphic.NewMesh(cube, mat)
-	b.mesh.SetPositionVec(&b.Pos)
+	pos := b.Pos.Clone().Add(math32.NewVector3(0.5, 0, 0.5))
+	b.mesh.SetPositionVec(pos)
 
 	n.GetNode().Add(b.mesh)
 }

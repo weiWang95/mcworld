@@ -23,8 +23,9 @@ const (
 )
 
 const (
-	CHUNK_WIDTH  int64 = 16
-	CHUNK_HEIGHT int64 = 40
+	CHUNK_WIDTH        int64 = 16
+	CHUNK_HEIGHT       int64 = 40
+	CHUNK_UPDATE_RANGE int64 = 1
 )
 
 type Chunk struct {
@@ -107,28 +108,42 @@ func (c *Chunk) RefreshBlocks(a *App) {
 	for y := int64(0); y < CHUNK_HEIGHT; y++ {
 		for x := int64(0); x < CHUNK_WIDTH; x++ {
 			for z := int64(0); z < CHUNK_WIDTH; z++ {
-				if c.blocks[y][x][z] == nil {
-					continue
-				}
-
-				c.blocks[y][x][z].AddTo(c)
-
-				if y == CHUNK_HEIGHT-1 {
-					c.blocks[y][x][z].SetVisible(true)
-					continue
-				}
-
-				if (y > 0 && c.IsTransparent(x, y-1, z)) || c.IsTransparent(x, y+1, z) ||
-					(x > 0 && c.IsTransparent(x-1, y, z)) || (x < CHUNK_WIDTH-1 && c.IsTransparent(x+1, y, z)) ||
-					(z > 0 && c.IsTransparent(x, y, z-1)) || (z < CHUNK_WIDTH-1 && c.IsTransparent(x, y, z+1)) {
-					c.blocks[y][x][z].SetVisible(true)
-					continue
-				}
-
-				c.blocks[y][x][z].SetVisible(false)
+				c.RefreshBlock(x, y, z)
 			}
 		}
 	}
+}
+
+func (c *Chunk) RefreshNearbyBlocks(bx, by, bz int64) {
+	for y := util.MaxInt64(0, by-CHUNK_UPDATE_RANGE); y <= util.MinInt64(by+CHUNK_UPDATE_RANGE, CHUNK_HEIGHT-1); y++ {
+		for x := util.MaxInt64(0, bx-CHUNK_UPDATE_RANGE); x <= util.MinInt64(bx+CHUNK_UPDATE_RANGE, CHUNK_WIDTH-1); x++ {
+			for z := util.MaxInt64(0, bz-CHUNK_UPDATE_RANGE); z <= util.MinInt64(bz+CHUNK_UPDATE_RANGE, CHUNK_WIDTH-1); z++ {
+				c.RefreshBlock(x, y, z)
+			}
+		}
+	}
+}
+
+func (c *Chunk) RefreshBlock(x, y, z int64) {
+	if c.blocks[y][x][z] == nil {
+		return
+	}
+
+	c.blocks[y][x][z].AddTo(c)
+
+	if y == CHUNK_HEIGHT-1 {
+		c.blocks[y][x][z].SetVisible(true)
+		return
+	}
+
+	if (y > 0 && c.IsTransparent(x, y-1, z)) || c.IsTransparent(x, y+1, z) ||
+		(x > 0 && c.IsTransparent(x-1, y, z)) || (x < CHUNK_WIDTH-1 && c.IsTransparent(x+1, y, z)) ||
+		(z > 0 && c.IsTransparent(x, y, z-1)) || (z < CHUNK_WIDTH-1 && c.IsTransparent(x, y, z+1)) {
+		c.blocks[y][x][z].SetVisible(true)
+		return
+	}
+
+	c.blocks[y][x][z].SetVisible(false)
 }
 
 func (c *Chunk) Rendered(a *App) {
@@ -210,5 +225,6 @@ func (c *Chunk) ReplaceBlock(pos math32.Vector3, block block.IBlock) bool {
 	}
 
 	c.blocks[int64(pos.Y)][bx][bz] = block
+	c.RefreshNearbyBlocks(bx, int64(pos.Y), bz)
 	return true
 }

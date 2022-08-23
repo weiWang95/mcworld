@@ -11,7 +11,7 @@ import (
 	"github.com/weiWang95/mcworld/app/block"
 )
 
-const DEFAULT_VIEW_DISTANCE int64 = 2
+const DEFAULT_VIEW_DISTANCE int64 = 0
 const DEFAULT_GRAVITY_SPEED float32 = -9.8
 const MAX_GRAVITY_SPEED float32 = -20
 

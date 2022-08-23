@@ -53,7 +53,7 @@ func GetIntermediate(start, end math32.Vector3, x, y, z *float32) *math32.Vector
 		return nil
 	}
 
-	if scale < 0 && scale > 1 {
+	if scale < 0 || scale > 1 {
 		return nil
 	}
 
@@ -102,20 +102,29 @@ func NewBlockBoundBox(x, y, z int64) *BoundBox {
 }
 
 func CollisionRayTrace(box *BoundBox, start, end math32.Vector3) *math32.Vector3 {
-	Instance().log.Debug("start CollisionRayTrace -> %v, %v, %v", box, start, end)
-	// 以碰撞盒坐标为原点
-	newStart := start.Add(math32.NewVector3(-box.X, -box.Y, -box.Z))
-	newEnd := end.Add(math32.NewVector3(-box.X, -box.Y, -box.Z))
+	// Instance().log.Debug("start CollisionRayTrace -> %v, %v, %v", box, start, end)
+	// // 以碰撞盒坐标为原点
+	// newStart := start.Add(math32.NewVector3(-box.X, -box.Y, -box.Z))
+	// newEnd := end.Add(math32.NewVector3(-box.X, -box.Y, -box.Z))
 
-	// 计算start到end与碰撞盒各平面交点
-	yz1 := GetIntermediateWithX(*newStart, *newEnd, box.X)
-	yz2 := GetIntermediateWithX(*newStart, *newEnd, box.X+box.BX)
+	// // 计算start到end与碰撞盒各平面交点
+	// yz1 := GetIntermediateWithX(*newStart, *newEnd, box.X)
+	// yz2 := GetIntermediateWithX(*newStart, *newEnd, box.X+box.BX)
 
-	xz1 := GetIntermediateWithY(*newStart, *newEnd, box.Y)
-	xz2 := GetIntermediateWithY(*newStart, *newEnd, box.Y+box.BY)
+	// xz1 := GetIntermediateWithY(*newStart, *newEnd, box.Y)
+	// xz2 := GetIntermediateWithY(*newStart, *newEnd, box.Y+box.BY)
 
-	xy1 := GetIntermediateWithZ(*newStart, *newEnd, box.Z)
-	xy2 := GetIntermediateWithZ(*newStart, *newEnd, box.Z+box.BZ)
+	// xy1 := GetIntermediateWithZ(*newStart, *newEnd, box.Z)
+	// xy2 := GetIntermediateWithZ(*newStart, *newEnd, box.Z+box.BZ)
+
+	yz1 := GetIntermediateWithX(start, end, box.X)
+	yz2 := GetIntermediateWithX(start, end, box.X+box.BX)
+
+	xz1 := GetIntermediateWithY(start, end, box.Y)
+	xz2 := GetIntermediateWithY(start, end, box.Y+box.BY)
+
+	xy1 := GetIntermediateWithZ(start, end, box.Z)
+	xy2 := GetIntermediateWithZ(start, end, box.Z+box.BZ)
 
 	// 交点不在碰撞盒内
 	if yz1 == nil || !box.Inside(*yz1) {
@@ -169,13 +178,13 @@ func CollisionRayTrace(box *BoundBox, start, end math32.Vector3) *math32.Vector3
 }
 
 func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
-	Instance().log.Debug("start ray trace block! start:%v, end:%v", start, end)
+	// Instance().log.Debug("start ray trace block! start:%v, end:%v", start, end)
 
 	startX, startY, startZ := util.FloorFloat(start.X), util.FloorFloat(start.Y), util.FloorFloat(start.Z)
 	endX, endY, endZ := util.FloorFloat(end.X), util.FloorFloat(end.Y), util.FloorFloat(end.Z)
 
 	for i := 200; i >= 0; i-- {
-		Instance().log.Debug("start check block -> %v, %v, %v", startX, startY, startZ)
+		// Instance().log.Debug("start check block -> %v, %v, %v", startX, startY, startZ)
 		// 检测到终点方块
 		if startX == endX && startY == endY && startZ == endZ {
 			return world.GetBlockByPosition(end.X, end.Y, end.Z)
@@ -187,7 +196,7 @@ func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
 		if endX > startX {
 			newX = float32(startX) + 1
 		} else if endX < startX {
-			newX = float32(startX) - 1
+			newX = float32(startX)
 		} else {
 			xChanged = false
 		}
@@ -195,7 +204,7 @@ func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
 		if endY > startY {
 			newY = float32(startY) + 1
 		} else if endY < startY {
-			newY = float32(startY) - 1
+			newY = float32(startY)
 		} else {
 			yChanged = false
 		}
@@ -203,7 +212,7 @@ func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
 		if endZ > startZ {
 			newZ = float32(startZ) + 1
 		} else if endZ < startZ {
-			newZ = float32(startZ) - 1
+			newZ = float32(startZ)
 		} else {
 			zChanged = false
 		}
@@ -225,16 +234,33 @@ func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
 			zt = (newZ - start.Z) / dz
 		}
 
+		d := 0
+
 		if xt < yt && xt < zt {
+			if endX > startX {
+				d = 4
+			} else {
+				d = 5
+			}
 
 			start.X = newX
 			start.Y += dy * xt
 			start.Z += dz * xt
 		} else if yt < zt {
+			if endY > startY {
+				d = 0
+			} else {
+				d = 1
+			}
 			start.X += dx * yt
 			start.Y = newY
 			start.Z += dz * yt
 		} else {
+			if endZ > startZ {
+				d = 2
+			} else {
+				d = 3
+			}
 			start.X += dx * zt
 			start.Y += dy * zt
 			start.Z = newZ
@@ -243,6 +269,14 @@ func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
 		startX = util.FloorFloat(start.X)
 		startY = util.FloorFloat(start.Y)
 		startZ = util.FloorFloat(start.Z)
+		switch d {
+		case 5: // X- 方向
+			startX -= 1
+		case 1: // Y- 方向
+			startY -= 1
+		case 3: // Z- 方向
+			startZ -= 1
+		}
 
 		block := world.GetBlockByPosition(float32(startX), float32(startY), float32(startZ))
 		if block == nil {

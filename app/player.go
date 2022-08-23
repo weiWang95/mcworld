@@ -13,6 +13,7 @@ import (
 	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/window"
+	"github.com/weiWang95/mcworld/app/block"
 )
 
 const PLAYER_JUMP_SPEED = 8
@@ -46,6 +47,7 @@ type Player struct {
 	Model     IControl
 	Camera    *camera.Camera
 	wreckLine *graphic.Lines
+	Target    *PlayerTarget
 
 	up     math32.Vector3
 	farPos math32.Vector3
@@ -62,6 +64,9 @@ type Player struct {
 	rotStart  math32.Vector2
 	panStart  math32.Vector2
 	zoomStart float32
+
+	// ticker
+	wreckTicker *TickChecker
 }
 
 func NewPlayer() *Player {
@@ -83,7 +88,9 @@ func NewPlayer() *Player {
 	p.Camera = camera.New(16 / 9)
 	p.ResetCamera()
 
-	p.farPos = *p.Model.GetViewport().Clone().Add(math32.NewVector3(p.Model.GetHandLength(), 0, 0))
+	p.farPos = *p.GetViewport().Clone().Add(math32.NewVector3(p.Model.GetHandLength(), 0, 0))
+
+	p.wreckTicker = NewTickChecker(8)
 
 	// Subscribe to events
 	gui.Manager().SetCursorFocus(p)
@@ -114,15 +121,20 @@ func (p *Player) Start(a *App) {
 	p.Model.Start(a)
 	p.Add(p.Model)
 
+	p.addWreckLine()
+	p.Add(p.Camera)
+
+	p.Target = NewPlayerTarget()
+	p.Add(p.Target)
+
 	a.Scene().Add(p)
-	a.Scene().Add(p.Camera)
 }
 
 func (p *Player) Update(a *App, t time.Duration) {
 	delta := float32(t) / float32(time.Second)
 	vSpeed := p.vSpeed * delta
 
-	pos := p.Model.GetPosition()
+	pos := p.GetPosition()
 
 	block := a.World().GetBlockByVec(*pos.Clone().Add(math32.NewVector3(0, vSpeed, 0)))
 	if block == nil {
@@ -138,29 +150,45 @@ func (p *Player) Update(a *App, t time.Duration) {
 	p.Move(a, p.GetSpeed()*delta, vSpeed)
 
 	p.Model.Update(a, t)
+
+	if p.wreckLine != nil {
+		pos := p.Camera.Position()
+		p.wreckLine.SetPositionVec(&pos)
+		p.wreckLine.LookAt(&p.farPos, &p.up)
+	}
+
+	if p.wreckTicker.Next(t) {
+		p.Target.SetTarget(p.GetTarget())
+	}
 }
 
 func (p *Player) Cleanup() {
 
 }
 
+func (p *Player) GetViewport() *math32.Vector3 {
+	return p.Model.GetViewport()
+}
+
 func (p *Player) GetPosition() *math32.Vector3 {
-	return p.Model.GetPosition()
+	pos := p.Node.Position()
+	return &pos
 }
 
 func (p *Player) SetPositionVec(pos math32.Vector3) {
+	p.Node.SetPositionVec(&pos)
 	p.Model.SetPosition(&pos)
 
-	viewport := p.Model.GetViewport()
+	viewport := p.GetViewport()
 	p.Camera.SetPositionVec(viewport.Clone().Add(math32.NewVector3(-1, 0, 0)))
-	p.Camera.LookAt(p.Model.GetViewport(), &p.up)
+	p.Camera.LookAt(p.GetViewport(), &p.up)
 }
 
 func (p *Player) ResetCamera() {
 	p.Camera.SetAspect(16 / 9)
 	p.Camera.UpdateSize(3)
 	p.Camera.SetProjection(camera.Perspective)
-	viewport := p.Model.GetViewport()
+	viewport := p.GetViewport()
 	p.Camera.SetPositionVec(viewport.Clone().Add(math32.NewVector3(-1, 0, 0)))
 	p.Camera.LookAt(viewport, math32.NewVector3(0, 1, 0))
 }
@@ -178,7 +206,7 @@ func (p *Player) Rotate(thetaDelta, phiDelta float32) {
 
 	// Compute direction vector from target to camera
 	tcam := p.Camera.Position()
-	viewport := p.Model.GetViewport()
+	viewport := p.GetViewport()
 	tcam.Sub(viewport)
 
 	// Calculate angles based on current camera position plus deltas
@@ -203,13 +231,13 @@ func (p *Player) Rotate(thetaDelta, phiDelta float32) {
 
 	p.Camera.SetPositionVec(viewport.Clone().Add(&tcam))
 	p.Camera.LookAt(viewport, &p.up)
-	p.farPos = *viewport.Clone().Add(math32.NewVector3(x, y, z))
+	p.farPos = *viewport.Clone().Add(math32.NewVector3(-x, -y, -z))
 }
 
 // Zoom moves the camera closer or farther from the target the specified amount
 // and also updates the camera's orthographic size to match.
 func (p *Player) Zoom(delta float32) {
-	viewport := p.Model.GetViewport()
+	viewport := p.GetViewport()
 
 	// Compute direction vector from target to camera
 	tcam := p.Camera.Position()
@@ -227,7 +255,7 @@ func (p *Player) Zoom(delta float32) {
 
 // Pan pans the camera and target the specified amount on the plane perpendicular to the viewing direction.
 func (p *Player) Pan(deltaX, deltaY float32) {
-	viewport := p.Model.GetViewport()
+	viewport := p.GetViewport()
 
 	// Compute direction vector from camera to target
 	position := p.Camera.Position()
@@ -253,7 +281,7 @@ func (p *Player) Move(a *App, speed float32, vSpeed float32) {
 	if p.moveDirection.X == 0 && p.moveDirection.Z == 0 && p.moveDirection.Y == 0 && vSpeed == 0 {
 		return
 	}
-	viewport := p.Model.GetViewport()
+	viewport := p.GetViewport()
 
 	// Compute direction vector from target to camera
 	tcam := p.Camera.Position()
@@ -265,14 +293,30 @@ func (p *Player) Move(a *App, speed float32, vSpeed float32) {
 	tcam.X = speed*math32.Sin(theta+math.Pi)*p.moveDirection.X + speed*math32.Sin(theta+0.5*math.Pi)*p.moveDirection.Z
 	tcam.Z = speed*math32.Cos(theta+math.Pi)*p.moveDirection.X + speed*math32.Cos(theta+0.5*math.Pi)*p.moveDirection.Z
 
-	pos := p.Model.GetPosition()
-	xBlock := a.World().GetBlockByPosition(pos.X+tcam.X, pos.Y, pos.Z)
-	if xBlock != nil {
-		tcam.X = 0
+	pos := p.GetPosition()
+	if tcam.X > 0 {
+		xBlock := a.World().GetBlockByPosition(pos.X+p.Model.GetBoundBox().X/2+tcam.X, pos.Y, pos.Z)
+		if xBlock != nil {
+			tcam.X = 0
+		}
+	} else if tcam.X < 0 {
+		xBlock := a.World().GetBlockByPosition(pos.X-p.Model.GetBoundBox().X/2+tcam.X, pos.Y, pos.Z)
+		if xBlock != nil {
+			tcam.X = 0
+		}
 	}
-	zBlock := a.World().GetBlockByPosition(pos.X, pos.Y, pos.Z+tcam.Z)
-	if zBlock != nil {
-		tcam.Z = 0
+
+	if tcam.Z > 0 {
+		zBlock := a.World().GetBlockByPosition(pos.X, pos.Y, pos.Z+p.Model.GetBoundBox().Z/2+tcam.Z)
+		if zBlock != nil {
+			tcam.Z = 0
+		}
+
+	} else if tcam.Z < 0 {
+		zBlock := a.World().GetBlockByPosition(pos.X, pos.Y, pos.Z-p.Model.GetBoundBox().Z/2+tcam.Z)
+		if zBlock != nil {
+			tcam.Z = 0
+		}
 	}
 
 	if viewport.Y+vSpeed < -10 {
@@ -281,15 +325,17 @@ func (p *Player) Move(a *App, speed float32, vSpeed float32) {
 	}
 	viewport.Add(math32.NewVector3(tcam.X, vSpeed, tcam.Z))
 
-	p.Model.SetPosition(pos.Add(math32.NewVector3(tcam.X, vSpeed, tcam.Z)))
-
+	newPos := pos.Add(math32.NewVector3(tcam.X, vSpeed, tcam.Z))
 	camPos := p.Camera.Position()
+
+	p.SetPositionVec(*newPos)
+
 	p.Camera.SetPositionVec(camPos.Add(math32.NewVector3(tcam.X, vSpeed, tcam.Z)))
-	p.Camera.LookAt(p.Model.GetViewport(), &p.up)
+	p.Camera.LookAt(p.GetViewport(), &p.up)
 }
 
 func (p *Player) Jump() {
-	Instance().log.Debug("pos -> %v, vSpeed -> %v, fall: %v \n", p.Model.GetPosition(), p.vSpeed, p.inFall)
+	Instance().log.Debug("pos -> %v, vSpeed -> %v, fall: %v \n", p.GetPosition(), p.vSpeed, p.inFall)
 
 	if p.inFall {
 		return
@@ -299,12 +345,16 @@ func (p *Player) Jump() {
 }
 
 func (p *Player) WreckBlock() {
-	block := RayTraceBlock(Instance().curWorld, *p.Model.GetViewport(), p.farPos)
+	block := p.GetTarget()
 	if block == nil {
 		return
 	}
 
 	Instance().curWorld.WreckBlock(block.GetPosition())
+}
+
+func (p *Player) GetTarget() block.IBlock {
+	return RayTraceBlock(Instance().curWorld, *p.GetViewport(), p.farPos)
 }
 
 // onMouse is called when an OnMouseDown/OnMouseUp event is received.
@@ -414,7 +464,7 @@ func (p *Player) addWreckLine() {
 	vertices := math32.NewArrayF32(0, 16)
 	vertices.Append(
 		0, 0, 0,
-		MaxControlDistance, 0, 0,
+		0, 0, MaxControlDistance+1,
 	)
 	colors := math32.NewArrayF32(0, 16)
 	colors.Append(
@@ -429,6 +479,7 @@ func (p *Player) addWreckLine() {
 
 	// Creates lines with the specified geometry and material
 	p.wreckLine = graphic.NewLines(geom, mat)
-	p.wreckLine.SetPositionVec(p.Model.GetViewport())
+	p.wreckLine.SetPositionVec(p.GetViewport())
+	p.wreckLine.SetPosition(2, 2, 2)
 	p.Add(p.wreckLine)
 }

@@ -31,8 +31,10 @@ type App struct {
 	frameRater *util.FrameRater // Render loop frame rater
 
 	// GUI
-	mainPanel *gui.Panel
-	labelFPS  *gui.Label // header FPS label
+	mainPanel  *gui.Panel
+	labelFPS   *gui.Label // header FPS label
+	debugPanel *DebugPanel
+	cursor     *gui.Panel
 
 	// OldPlayer
 	// player *OldPlayer
@@ -128,18 +130,17 @@ func (a *App) setupScene() {
 }
 
 func (a *App) buildGui() {
-	dl := gui.NewDockLayout()
 	width, height := a.GetSize()
 	a.mainPanel = gui.NewPanel(float32(width), float32(height))
 	a.mainPanel.SetRenderable(false)
 	a.mainPanel.SetEnabled(false)
-	a.mainPanel.SetLayout(dl)
+	a.mainPanel.SetLayout(gui.NewDockLayout())
 	a.scene.Add(a.mainPanel)
 	gui.Manager().Set(a.mainPanel)
 
 	headerColor := math32.Color4{0, 0, 0, 0.1}
 	lightTextColor := math32.Color4{0.8, 0.8, 0.8, 1}
-	header := gui.NewPanel(100, 40)
+	header := gui.NewPanel(100, 20)
 	header.SetPaddings(4, 4, 4, 4)
 	header.SetColor4(&headerColor)
 	header.SetLayoutParams(&gui.DockLayoutParams{Edge: gui.DockTop})
@@ -163,6 +164,26 @@ func (a *App) buildGui() {
 	a.labelFPS.SetLayoutParams(&gui.HBoxLayoutParams{AlignV: gui.AlignCenter})
 	a.labelFPS.SetColor4(&lightTextColor)
 	header.Add(a.labelFPS)
+
+	// debug panel
+	a.debugPanel = NewDebugPanel(a)
+	a.mainPanel.Add(a.debugPanel.GetPanel())
+
+	cursor := gui.NewPanel(20, 20)
+	cursor.SetRenderable(false)
+	cursor.SetEnabled(false)
+	cursor.SetLayout(gui.NewDockLayout())
+
+	label := gui.NewLabel(" ")
+	label.SetFontSize(20)
+	label.SetLayoutParams(&gui.DockLayoutParams{})
+	label.SetText("+")
+	label.SetColor4(&lightTextColor)
+	cursor.Add(label)
+	a.cursor = cursor
+	a.cursor.SetPosition(float32(width)/2-10, float32(height)/2-10)
+
+	a.mainPanel.Add(a.cursor)
 }
 
 func (a *App) Run() {
@@ -194,6 +215,7 @@ func (a *App) Update(rend *renderer.Renderer, deltaTime time.Duration) {
 	// Control and update FPS
 	a.frameRater.Wait()
 	a.updateFPS()
+	a.updateDebug()
 }
 
 // UpdateFPS updates the fps value in the window title or header label
@@ -206,6 +228,12 @@ func (a *App) updateFPS() {
 
 	// Show the FPS in the header label
 	a.labelFPS.SetText(fmt.Sprintf("%3.1f / %3.1f", fps, pfps))
+}
+
+func (a *App) updateDebug() {
+	if a.debugPanel != nil {
+		a.debugPanel.update()
+	}
 }
 
 func (a *App) checkDirData(dirDataName string) string {
