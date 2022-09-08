@@ -22,12 +22,12 @@ func NewPlayerTarget() *PlayerTarget {
 	target.Node = *core.NewNode()
 
 	target.addBox()
-	target.SetTarget(nil)
+	target.SetTarget(nil, block.BlockFaceNone)
 
 	return target
 }
 
-func (target *PlayerTarget) SetTarget(b block.IBlock) {
+func (target *PlayerTarget) SetTarget(b block.IBlock, face block.BlockFace) {
 	target.b = b
 	target.SetVisible(target.b != nil)
 	if target.b != nil {

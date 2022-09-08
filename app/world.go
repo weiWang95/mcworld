@@ -134,6 +134,12 @@ func (w *World) WreckBlock(pos math32.Vector3) {
 	chunk.ReplaceBlock(pos, nil)
 }
 
+func (w *World) PlaceBlock(block block.IBlock, pos math32.Vector3) {
+	w.Debug("place block:%T -> %v", block, pos)
+	chunk := w.cm.GetChunk(pos.X, pos.Y, pos.Z)
+	chunk.ReplaceBlock(pos, block)
+}
+
 func (w *World) WorldGenerator() IWorldGenerator {
 	return w.wg
 }

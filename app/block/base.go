@@ -15,6 +15,18 @@ const (
 	BlockSoil
 )
 
+type BlockFace int
+
+const (
+	BlockFaceNone   BlockFace = iota - 1
+	BlockFaceFront            // 前 0
+	BlockFaceBack             // 后 1
+	BlockFaceLeft             // 左 2
+	BlockFaceRight            // 右 3
+	BlockFaceTop              // 上 4
+	BlockFaceBottom           // 下 5
+)
+
 var blockMap map[BlockId]IBlock
 
 type IBlock interface {

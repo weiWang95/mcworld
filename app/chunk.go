@@ -240,6 +240,11 @@ func (c *Chunk) ReplaceBlock(pos math32.Vector3, block block.IBlock) bool {
 	}
 
 	c.blocks[int64(pos.Y)][bx][bz] = block
+	if block != nil {
+		block.SetPosition(pos)
+		block.AddTo(c)
+		block.SetVisible(true)
+	}
 	c.RefreshNearbyBlocks(bx, int64(pos.Y), bz)
 	return true
 }

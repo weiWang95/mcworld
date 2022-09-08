@@ -364,7 +364,7 @@ func (p *Player) Jump() {
 }
 
 func (p *Player) WreckBlock() {
-	block := p.GetTarget()
+	block, _ := p.GetTarget()
 	if block == nil {
 		return
 	}
@@ -372,8 +372,41 @@ func (p *Player) WreckBlock() {
 	Instance().curWorld.WreckBlock(block.GetPosition())
 }
 
-func (p *Player) GetTarget() block.IBlock {
-	return RayTraceBlock(Instance().curWorld, *p.GetViewport(), p.farPos)
+func (p *Player) PlaceBlock() {
+	b, face := p.GetTarget()
+	if b == nil {
+		return
+	}
+
+	pos := b.GetPosition()
+	switch face {
+	case block.BlockFaceFront:
+		pos = *(pos.Add(math32.NewVector3(0, 0, -1)))
+	case block.BlockFaceBack:
+		pos = *(pos.Add(math32.NewVector3(0, 0, 1)))
+	case block.BlockFaceLeft:
+		pos = *(pos.Add(math32.NewVector3(-1, 0, 0)))
+	case block.BlockFaceRight:
+		pos = *(pos.Add(math32.NewVector3(0, 0, 1)))
+	case block.BlockFaceTop:
+		pos = *(pos.Add(math32.NewVector3(0, 1, 0)))
+	case block.BlockFaceBottom:
+		pos = *(pos.Add(math32.NewVector3(0, -1, 0)))
+	default:
+		return
+	}
+
+	nb := block.NewBlock(block.BlockSoil, pos)
+	Instance().curWorld.PlaceBlock(nb, pos)
+}
+
+func (p *Player) GetTarget() (block.IBlock, block.BlockFace) {
+	b, pos := RayTraceBlock(Instance().curWorld, *p.GetViewport(), p.farPos)
+	if b == nil || pos == nil {
+		return nil, block.BlockFaceNone
+	}
+
+	return b, GetBlockFace(b.GetPosition(), *pos)
 }
 
 // onMouse is called when an OnMouseDown/OnMouseUp event is received.
@@ -388,6 +421,7 @@ func (p *Player) onMouse(evname string, ev interface{}) {
 			p.WreckBlock()
 		case window.MouseButtonMiddle:
 		case window.MouseButtonRight:
+			p.PlaceBlock()
 		}
 	case window.OnMouseUp:
 		// gui.Manager().SetCursorFocus(nil)
