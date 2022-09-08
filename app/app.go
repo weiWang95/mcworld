@@ -16,6 +16,7 @@ import (
 	"github.com/g3n/engine/util/helper"
 	"github.com/g3n/engine/util/logger"
 	"github.com/g3n/engine/window"
+	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
 var instance *App
@@ -54,6 +55,7 @@ func Create() *App {
 
 	a := new(App)
 	a.Application = app.App(800, 600, "Mc World")
+	a.debugMode = true
 
 	a.log = logger.New("main", nil)
 	a.log.AddWriter(logger.NewConsole(false))
@@ -118,6 +120,7 @@ func (a *App) setupScene() {
 
 	a.DisposeAllCustomCursors()
 	a.SetCursor(window.ArrowCursor)
+	window.Get().(*window.GlfwWindow).SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
 
 	// Set default background color
 	a.Gls().ClearColor(0.6, 0.6, 0.6, 1.0)

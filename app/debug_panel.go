@@ -90,7 +90,7 @@ func (p *DebugPanel) update() {
 	p.viewPort.SetText(p.formatPos(*player.GetViewport()))
 	p.camera.SetText(p.formatPos(player.Camera.Position()))
 	p.farPos.SetText(p.formatPos(player.farPos))
-	p.target.SetText(fmt.Sprintf("V:%v P:%s", player.Target.Visible(), p.formatPos(player.Target.Position())))
+	p.target.SetText(fmt.Sprintf("T: %T V:%v P:%s", player.Target.b, player.Target.Visible(), p.formatPos(player.Target.Position())))
 }
 
 func (p *DebugPanel) formatPos(pos math32.Vector3) string {

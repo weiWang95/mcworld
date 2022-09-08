@@ -16,7 +16,7 @@ import (
 	"github.com/weiWang95/mcworld/app/block"
 )
 
-const PLAYER_JUMP_SPEED = 8
+const PLAYER_JUMP_SPEED = 4.85 // 1.5: 5.42 1.2: 4.85
 const MaxControlDistance = 8
 
 type OrbitEnabled int
@@ -135,16 +135,33 @@ func (p *Player) Update(a *App, t time.Duration) {
 	vSpeed := p.vSpeed * delta
 
 	pos := p.GetPosition()
+	if vSpeed != 0 {
+		Instance().Log().Debug("pos: %v fall:%v hv:%.02f hd:%.02f", pos, p.inFall, p.vSpeed, vSpeed)
+	}
 
-	block := a.World().GetBlockByVec(*pos.Clone().Add(math32.NewVector3(0, vSpeed, 0)))
-	if block == nil {
-		p.vSpeed += DEFAULT_GRAVITY_SPEED * delta
-		p.vSpeed = math32.Clamp(p.vSpeed, MAX_GRAVITY_SPEED, 40)
-		p.inFall = true
-	} else if p.vSpeed <= 0 {
-		vSpeed = float32(int64(pos.Y)) - pos.Y
-		p.vSpeed = 0
-		p.inFall = false
+	if p.vSpeed > 0 {
+		npos := math32.NewVector3(pos.X, p.Model.GetBoundBox().BY+vSpeed, pos.Z)
+		block, _ := a.World().GetBlockByVec(*npos)
+		if block != nil {
+			vSpeed = float32(int64(pos.Y)) - pos.Y
+			p.vSpeed = 0
+			p.inFall = true
+		} else {
+			p.vSpeed += DEFAULT_GRAVITY_SPEED * delta
+			p.vSpeed = math32.Clamp(p.vSpeed, MAX_GRAVITY_SPEED, 40)
+			p.inFall = true
+		}
+	} else {
+		block, _ := a.World().GetBlockByVec(*pos.Clone().Add(math32.NewVector3(0, vSpeed-0.01, 0)))
+		if block == nil {
+			p.vSpeed += DEFAULT_GRAVITY_SPEED * delta
+			p.vSpeed = math32.Clamp(p.vSpeed, MAX_GRAVITY_SPEED, 40)
+			p.inFall = true
+		} else {
+			vSpeed = float32(int64(pos.Y)) - pos.Y
+			p.vSpeed = 0
+			p.inFall = false
+		}
 	}
 
 	p.Move(a, p.GetSpeed()*delta, vSpeed)
@@ -295,25 +312,27 @@ func (p *Player) Move(a *App, speed float32, vSpeed float32) {
 
 	pos := p.GetPosition()
 	if tcam.X > 0 {
-		xBlock := a.World().GetBlockByPosition(pos.X+p.Model.GetBoundBox().X/2+tcam.X, pos.Y, pos.Z)
+		// xBlock := a.World().GetBlockByPosition(pos.X+p.Model.GetBoundBox().X/2+tcam.X, pos.Y, pos.Z)
+		xBlock, _ := a.World().GetBlockByPosition(p.Model.GetBoundBox().BX+tcam.X, pos.Y, pos.Z)
 		if xBlock != nil {
 			tcam.X = 0
 		}
 	} else if tcam.X < 0 {
-		xBlock := a.World().GetBlockByPosition(pos.X-p.Model.GetBoundBox().X/2+tcam.X, pos.Y, pos.Z)
+		// xBlock := a.World().GetBlockByPosition(pos.X-p.Model.GetBoundBox().X/2+tcam.X, pos.Y, pos.Z)
+		xBlock, _ := a.World().GetBlockByPosition(p.Model.GetBoundBox().X+tcam.X, pos.Y, pos.Z)
 		if xBlock != nil {
 			tcam.X = 0
 		}
 	}
 
 	if tcam.Z > 0 {
-		zBlock := a.World().GetBlockByPosition(pos.X, pos.Y, pos.Z+p.Model.GetBoundBox().Z/2+tcam.Z)
+		zBlock, _ := a.World().GetBlockByPosition(pos.X, pos.Y, p.Model.GetBoundBox().BZ+tcam.Z)
 		if zBlock != nil {
 			tcam.Z = 0
 		}
 
 	} else if tcam.Z < 0 {
-		zBlock := a.World().GetBlockByPosition(pos.X, pos.Y, pos.Z-p.Model.GetBoundBox().Z/2+tcam.Z)
+		zBlock, _ := a.World().GetBlockByPosition(pos.X, pos.Y, p.Model.GetBoundBox().Z+tcam.Z)
 		if zBlock != nil {
 			tcam.Z = 0
 		}

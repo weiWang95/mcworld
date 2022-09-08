@@ -109,17 +109,17 @@ func (w *World) getArea(x, z float32) *Area {
 	return nil
 }
 
-func (w *World) GetBlockByVec(vec math32.Vector3) block.IBlock {
+func (w *World) GetBlockByVec(vec math32.Vector3) (block block.IBlock, chunkLoaded bool) {
 	return w.GetBlockByPosition(vec.X, vec.Y, vec.Z)
 }
 
-func (w *World) GetBlockByPosition(x, y, z float32) block.IBlock {
+func (w *World) GetBlockByPosition(x, y, z float32) (block block.IBlock, chunkLoaded bool) {
 	chunk := w.cm.GetChunk(x, y, z)
 	if chunk == nil {
-		return nil
+		return nil, false
 	}
 
-	return chunk.GetBlock(x, y, z)
+	return chunk.GetBlock(x, y, z), true
 }
 
 func (w *World) activeAreasLen() int64 {

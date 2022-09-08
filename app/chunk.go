@@ -125,20 +125,31 @@ func (c *Chunk) RefreshNearbyBlocks(bx, by, bz int64) {
 }
 
 func (c *Chunk) RefreshBlock(x, y, z int64) {
+	world := Instance().World()
 	if c.blocks[y][x][z] == nil {
 		return
 	}
 
 	c.blocks[y][x][z].AddTo(c)
 
-	if y == CHUNK_HEIGHT-1 {
+	if y == 0 && c.IsTransparent(x, y+1, z) {
+		c.blocks[y][x][z].SetVisible(true)
+		return
+	} else if y == CHUNK_HEIGHT-1 && c.IsTransparent(x, y-1, z) {
 		c.blocks[y][x][z].SetVisible(true)
 		return
 	}
 
-	if (y > 0 && c.IsTransparent(x, y-1, z)) || c.IsTransparent(x, y+1, z) ||
+	if (x == 0 && BlockIsTransparent(world.GetBlockByVec(c.BlockPos(x-1, y, z)))) ||
+		(x == CHUNK_WIDTH-1 && BlockIsTransparent(world.GetBlockByVec(c.BlockPos(x+1, y, z)))) ||
+		(z == 0 && BlockIsTransparent(world.GetBlockByVec(c.BlockPos(x, y, z-1)))) ||
+		(z == CHUNK_WIDTH-1 && BlockIsTransparent(world.GetBlockByVec(c.BlockPos(x, y, z+1)))) {
+		c.blocks[y][x][z].SetVisible(true)
+		return
+	} else if (y > 0 && c.IsTransparent(x, y-1, z)) || c.IsTransparent(x, y+1, z) ||
 		(x > 0 && c.IsTransparent(x-1, y, z)) || (x < CHUNK_WIDTH-1 && c.IsTransparent(x+1, y, z)) ||
 		(z > 0 && c.IsTransparent(x, y, z-1)) || (z < CHUNK_WIDTH-1 && c.IsTransparent(x, y, z+1)) {
+
 		c.blocks[y][x][z].SetVisible(true)
 		return
 	}
@@ -203,6 +214,10 @@ func (c *Chunk) GetBlock(x, y, z float32) block.IBlock {
 	bz := util.FloorFloat(z) - int64(c.actPos.Z)
 
 	return c.blocks[int64(y)][bx][bz]
+}
+
+func (c *Chunk) BlockPos(x, y, z int64) math32.Vector3 {
+	return *c.actPos.Clone().Add(math32.NewVector3(float32(x), float32(y), float32(z)))
 }
 
 func (c *Chunk) ReplaceBlock(pos math32.Vector3, block block.IBlock) bool {

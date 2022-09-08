@@ -81,10 +81,18 @@ func (cm *ChunkManager) setup(a *App) {
 
 func (cm *ChunkManager) checkAndLoadChunks(a *App, curPos *math32.Vector3) {
 	centerPos := ToChunkPos(curPos)
+	// a.Log().Debug("center pos: %v", centerPos)
+	// a.Log().Debug("loaded chunks: %d", len(cm.loadedChunkMap))
+	// for k, _ := range cm.loadedChunkMap {
+	// 	a.Log().Debug("X:%d Z:%d", k.X, k.Z)
+	// }
+
 	if cm.centerChunk != nil && cm.centerChunk.pos.X == centerPos.X && cm.centerChunk.pos.Z == centerPos.Z {
 		// 更新卸载区块信息
+		// a.Log().Debug("unloading chunks: %d", len(cm.UnloadingChunkMap))
 		for key, uc := range cm.UnloadingChunkMap {
 			if uc.AliveTick >= 10 {
+				a.Log().Debug("unload chunk from mem: %v", uc.pos)
 				// 卸载区块
 				cm.Remove(uc)
 				uc.Cleanup()
@@ -131,9 +139,11 @@ func (cm *ChunkManager) checkAndLoadChunks(a *App, curPos *math32.Vector3) {
 		}
 	}
 
+	// a.Log().Debug("unloading chunks: %d", len(cm.UnloadingChunkMap))
 	// 更新卸载区块信息
 	for key, uc := range cm.UnloadingChunkMap {
 		if uc.AliveTick >= 10 {
+			a.Log().Debug("unload chunk from mem: %v", uc.pos)
 			// 卸载区块
 			cm.Remove(uc)
 			uc.Cleanup()
@@ -148,9 +158,9 @@ func (cm *ChunkManager) checkAndLoadChunks(a *App, curPos *math32.Vector3) {
 		if !unload {
 			continue
 		}
+		a.Log().Debug("will unload chunk: %v", pos)
 
 		cm.UnloadingChunkMap[pos] = &UnloadingChunk{Chunk: cm.loadedChunkMap[pos]}
-
 		delete(cm.loadedChunkMap, pos)
 	}
 
@@ -162,19 +172,27 @@ func (cm *ChunkManager) StepLoadChunk(a *App) {
 	if len(cm.loadingChunkMap) == 0 {
 		return
 	}
+	playerPos := a.Player().GetPosition()
 
-	var loadedPos ChunkPos
+	var nearestPos ChunkPos
+	minDistance := float32(1000)
 	for pos, _ := range cm.loadingChunkMap {
-		loadedPos = pos
-
-		chunk := NewChunk(pos.X, pos.Z)
-		chunk.Start(a)
-		cm.Add(chunk)
-		cm.loadedChunkMap[pos] = chunk
-		break
+		d := SquareDistance(*math32.NewVector3(playerPos.X, 0, playerPos.Z), *math32.NewVector3(float32(pos.X), 0, float32(pos.Z)))
+		if d < minDistance {
+			minDistance = d
+			nearestPos = pos
+		}
 	}
 
-	delete(cm.loadingChunkMap, loadedPos)
+	a.Log().Debug("load chunk: %v", nearestPos)
+
+	chunk := NewChunk(nearestPos.X, nearestPos.Z)
+	chunk.Start(a)
+	chunk.Rendered(a)
+	cm.Add(chunk)
+	cm.loadedChunkMap[nearestPos] = chunk
+
+	delete(cm.loadingChunkMap, nearestPos)
 }
 
 func (cm *ChunkManager) GetChunk(x, y, z float32) *Chunk {

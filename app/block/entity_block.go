@@ -27,10 +27,17 @@ func (b *EntityBlock) SetVisible(state bool) {
 	b.mesh.SetVisible(state)
 }
 
-func (b *EntityBlock) AddTo(n core.INode, mat material.IMaterial) {
+func (b *EntityBlock) AddTo(n core.INode, mats ...material.IMaterial) {
 	cube := geometry.NewCube(1)
 
-	b.mesh = graphic.NewMesh(cube, mat)
+	if len(mats) == 1 {
+		b.mesh = graphic.NewMesh(cube, mats[0])
+	} else {
+		b.mesh = graphic.NewMesh(cube, nil)
+		for i, _ := range mats {
+			b.mesh.AddGroupMaterial(mats[i], i)
+		}
+	}
 	pos := b.Pos.Clone().Add(math32.NewVector3(0.5, 0, 0.5))
 	b.mesh.SetPositionVec(pos)
 

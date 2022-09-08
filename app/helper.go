@@ -172,7 +172,7 @@ func CollisionRayTrace(box *BoundBox, start, end math32.Vector3) *math32.Vector3
 		hitPos = xy2
 	}
 
-	Instance().log.Debug("hitPos -> %v", hitPos)
+	// Instance().log.Debug("hitPos -> %v", hitPos)
 
 	return hitPos
 }
@@ -187,7 +187,8 @@ func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
 		// Instance().log.Debug("start check block -> %v, %v, %v", startX, startY, startZ)
 		// 检测到终点方块
 		if startX == endX && startY == endY && startZ == endZ {
-			return world.GetBlockByPosition(end.X, end.Y, end.Z)
+			b, _ := world.GetBlockByPosition(end.X, end.Y, end.Z)
+			return b
 		}
 
 		xChanged, yChanged, zChanged := true, true, true
@@ -278,7 +279,7 @@ func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
 			startZ -= 1
 		}
 
-		block := world.GetBlockByPosition(float32(startX), float32(startY), float32(startZ))
+		block, _ := world.GetBlockByPosition(float32(startX), float32(startY), float32(startZ))
 		if block == nil {
 			continue
 		}
@@ -291,4 +292,17 @@ func RayTraceBlock(world *World, start, end math32.Vector3) block.IBlock {
 	}
 
 	return nil
+}
+
+// BlockIsTransparent 方块是否透明
+func BlockIsTransparent(block block.IBlock, chunkLoaded bool) bool {
+	if !chunkLoaded {
+		return false
+	}
+
+	if block == nil {
+		return true
+	}
+
+	return block.Transparent()
 }
