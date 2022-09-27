@@ -15,6 +15,8 @@ const (
 	BlockSoil
 )
 
+type BlockState uint8
+
 type BlockFace int
 
 const (
@@ -31,10 +33,16 @@ var blockMap map[BlockId]IBlock
 
 type IBlock interface {
 	Init()
+	GetId() BlockId
+	GetState() BlockState
+	GetBlockLum() uint8
+	Lumable() bool
 	Transparent() bool
 	SetVisible(state bool)
+	Visible() bool
 	SetPosition(pos math32.Vector3)
 	GetPosition() math32.Vector3
+	SetLum(lum uint8, idx int)
 	AddTo(n core.INode)
 	RemoveFrom(n core.INode)
 }

@@ -24,10 +24,12 @@ var instance *App
 type App struct {
 	*app.Application
 
-	log        *logger.Logger
-	dirData    string // Full path of the data directory
-	scene      *core.Node
-	curWorld   *World
+	log      *logger.Logger
+	dirData  string // Full path of the data directory
+	scene    *core.Node
+	curWorld *World
+	sm       ISaveManager
+
 	grid       *helper.Grid
 	frameRater *util.FrameRater // Render loop frame rater
 
@@ -99,6 +101,7 @@ func Create() *App {
 	a.log.Info("Using data directory:%s", a.dirData)
 
 	// Register Listen
+	gui.Manager().SubscribeID(window.OnKeyDown, &a, a.OnKeyDown)
 	a.Subscribe(window.OnWindowSize, a.OnWindowSize)
 	a.OnWindowSize("", nil)
 
@@ -106,6 +109,8 @@ func Create() *App {
 
 	a.curWorld = NewWorld()
 	a.curWorld.Start(a)
+
+	a.sm = newFileSaveManager()
 
 	instance = a
 	return instance
@@ -267,6 +272,10 @@ func (a *App) World() *World {
 	return a.curWorld
 }
 
+func (a *App) SaveManager() ISaveManager {
+	return a.sm
+}
+
 func (a *App) IsDebugMode() bool {
 	return a.debugMode
 }
@@ -294,6 +303,7 @@ func (a *App) OnKeyDown(evname string, ev interface{}) {
 
 	switch kev.Key {
 	case window.KeyEscape:
+		a.World().cm.SaveAll()
 		a.Exit()
 	}
 }

@@ -93,6 +93,7 @@ func (cm *ChunkManager) checkAndLoadChunks(a *App, curPos *math32.Vector3) {
 		for key, uc := range cm.UnloadingChunkMap {
 			if uc.AliveTick >= 10 {
 				a.Log().Debug("unload chunk from mem: %v", uc.pos)
+				a.SaveManager().SaveChunk(uc.Chunk)
 				// 卸载区块
 				cm.Remove(uc)
 				uc.Cleanup()
@@ -144,6 +145,7 @@ func (cm *ChunkManager) checkAndLoadChunks(a *App, curPos *math32.Vector3) {
 	for key, uc := range cm.UnloadingChunkMap {
 		if uc.AliveTick >= 10 {
 			a.Log().Debug("unload chunk from mem: %v", uc.pos)
+			a.SaveManager().SaveChunk(uc.Chunk)
 			// 卸载区块
 			cm.Remove(uc)
 			uc.Cleanup()
@@ -190,6 +192,7 @@ func (cm *ChunkManager) StepLoadChunk(a *App) {
 	chunk.Start(a)
 	chunk.Rendered(a)
 	cm.Add(chunk)
+	a.SaveManager().SaveChunk(chunk)
 	cm.loadedChunkMap[nearestPos] = chunk
 
 	delete(cm.loadingChunkMap, nearestPos)
@@ -198,4 +201,14 @@ func (cm *ChunkManager) StepLoadChunk(a *App) {
 func (cm *ChunkManager) GetChunk(x, y, z float32) *Chunk {
 	pos := ToChunkPos(math32.NewVector3(x, 0, z))
 	return cm.loadedChunkMap[pos]
+}
+
+func (cm *ChunkManager) SaveAll() {
+	for _, item := range cm.loadedChunkMap {
+		Instance().SaveManager().SaveChunk(item)
+	}
+
+	for _, item := range cm.UnloadingChunkMap {
+		Instance().SaveManager().SaveChunk(item.Chunk)
+	}
 }

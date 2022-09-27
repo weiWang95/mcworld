@@ -18,6 +18,10 @@ func (b *TransparentBlock) SetVisible(state bool) {
 
 }
 
+func (b *TransparentBlock) Visible() bool {
+	return false
+}
+
 func (b *TransparentBlock) AddTo(n core.INode, materialPath string) {
 
 }

@@ -5,22 +5,15 @@ import (
 	"github.com/g3n/engine/math32"
 )
 
-var matMap map[uint64]material.IMaterial
+func LoadBlockMaterial(id uint64) []material.IMaterial {
+	tex := LoadBlockTexture(id)
+	mats := make([]material.IMaterial, 0, 6)
 
-func init() {
-	matMap = make(map[uint64]material.IMaterial)
-}
-
-func LoadBlockMaterial(id uint64) material.IMaterial {
-	if mat, ok := matMap[id]; ok {
-		return mat
+	for i := 0; i < 6; i++ {
+		mat := material.NewStandard(math32.NewColor("white"))
+		mat.AddTexture(tex)
+		mats = append(mats, mat)
 	}
 
-	tex := LoadBlockTexture(id)
-	mat := material.NewStandard(&math32.Color{1, 1, 1})
-	mat.AddTexture(tex)
-
-	matMap[id] = mat
-
-	return mat
+	return mats
 }

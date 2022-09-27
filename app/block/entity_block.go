@@ -6,13 +6,14 @@ import (
 	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
+	"github.com/weiWang95/mcworld/app/loader"
 )
 
 type EntityBlock struct {
 	Block
 
 	mesh *graphic.Mesh
-	box  *graphic.Lines
+	mats []material.IMaterial
 }
 
 func (b *EntityBlock) Init() {
@@ -27,8 +28,19 @@ func (b *EntityBlock) SetVisible(state bool) {
 	b.mesh.SetVisible(state)
 }
 
-func (b *EntityBlock) AddTo(n core.INode, mats ...material.IMaterial) {
+func (b *EntityBlock) Visible() bool {
+	if b.mesh == nil {
+		return false
+	}
+
+	return b.mesh.Visible()
+}
+
+func (b *EntityBlock) AddTo(n core.INode) {
+	mats := loader.LoadBlockMaterial(uint64(b.Id))
 	cube := geometry.NewCube(1)
+
+	b.mats = mats
 
 	if len(mats) == 1 {
 		b.mesh = graphic.NewMesh(cube, mats[0])
@@ -42,6 +54,10 @@ func (b *EntityBlock) AddTo(n core.INode, mats ...material.IMaterial) {
 	b.mesh.SetPositionVec(pos)
 
 	n.GetNode().Add(b.mesh)
+}
+
+func (b *EntityBlock) SetLum(lum uint8, idx int) {
+	b.mats[idx].(*material.Standard).SetAmbientColor(math32.NewColor("white").MultiplyScalar(float32(lum)/15.0*0.5 + 0.5))
 }
 
 func (b *EntityBlock) RemoveFrom(n core.INode) {
