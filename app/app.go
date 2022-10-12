@@ -30,6 +30,8 @@ type App struct {
 	curWorld *World
 	sm       ISaveManager
 
+	seed int64
+
 	grid       *helper.Grid
 	frameRater *util.FrameRater // Render loop frame rater
 
@@ -38,6 +40,7 @@ type App struct {
 	labelFPS   *gui.Label // header FPS label
 	debugPanel *DebugPanel
 	cursor     *gui.Panel
+	playerGui  *PlayerGui
 
 	// OldPlayer
 	// player *OldPlayer
@@ -107,10 +110,11 @@ func Create() *App {
 
 	a.setupScene()
 
+	a.sm = newFileSaveManager()
+	a.initSeed()
+
 	a.curWorld = NewWorld()
 	a.curWorld.Start(a)
-
-	a.sm = newFileSaveManager()
 
 	instance = a
 	return instance
@@ -135,6 +139,18 @@ func (a *App) setupScene() {
 
 	// Create and add an axis helper to the scene
 	a.scene.Add(helper.NewAxes(1))
+}
+
+func (a *App) initSeed() {
+	a.seed = a.sm.LoadSeed()
+	if a.seed != 0 {
+		a.Log().Debug("load seed:%d", a.seed)
+		return
+	}
+
+	a.seed = time.Now().Unix()
+	a.Log().Debug("new seed:%d", a.seed)
+	a.sm.SaveSeed(a.seed)
 }
 
 func (a *App) buildGui() {
@@ -192,6 +208,10 @@ func (a *App) buildGui() {
 	a.cursor.SetPosition(float32(width)/2-10, float32(height)/2-10)
 
 	a.mainPanel.Add(a.cursor)
+
+	// Player gui
+	a.playerGui = NewPlayerGui(a)
+	a.scene.Add(a.playerGui)
 }
 
 func (a *App) Run() {

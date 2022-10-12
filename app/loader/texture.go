@@ -18,8 +18,8 @@ func init() {
 	textMap = make(map[string]*texture.Texture2D)
 }
 
-func LoadBlockTexture(id uint64) *texture.Texture2D {
-	return LoadTexture(fmt.Sprintf("/images/blocks/%d.jpg", id))
+func LoadBlockTexture(id uint64, face int) *texture.Texture2D {
+	return LoadTexture(fmt.Sprintf("/images/blocks/%d_%d.jpg", id, face))
 }
 
 func LoadTexture(path string) *texture.Texture2D {
@@ -30,9 +30,8 @@ func LoadTexture(path string) *texture.Texture2D {
 	tex, err := texture.NewTexture2DFromImage(sourcePath + path)
 	if err != nil {
 		fmt.Printf("Error:%s loading texture:%s \n", err, path)
-		tex = LoadTexture(defaultTex)
-		textMap[path] = tex
-		return tex
+		textMap[path] = nil
+		return nil
 	}
 
 	textMap[path] = tex

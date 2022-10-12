@@ -40,6 +40,13 @@ const (
 	statePan
 )
 
+type PlayMode uint8
+
+const (
+	PlayModeCreate = iota
+	PlayModeLife
+)
+
 type Player struct {
 	core.Node
 	core.Dispatcher
@@ -52,6 +59,7 @@ type Player struct {
 	up     math32.Vector3
 	farPos math32.Vector3
 
+	playMode      PlayMode
 	speed         float32
 	vSpeed        float32
 	inFall        bool
@@ -66,7 +74,9 @@ type Player struct {
 	zoomStart float32
 
 	// ticker
-	wreckTicker *TickChecker
+	wreckTicker     *TickChecker
+	curInventoryIdx uint8
+	inventory       [10]block.BlockId
 }
 
 func NewPlayer() *Player {
@@ -91,6 +101,9 @@ func NewPlayer() *Player {
 	p.farPos = *p.GetViewport().Clone().Add(math32.NewVector3(p.Model.GetHandLength(), 0, 0))
 
 	p.wreckTicker = NewTickChecker(8)
+
+	p.playMode = PlayModeLife
+	p.inventory = [10]block.BlockId{block.BlockSoil, block.BlockBrick, block.BlockLamp}
 
 	// Subscribe to events
 	gui.Manager().SetCursorFocus(p)
@@ -135,32 +148,34 @@ func (p *Player) Update(a *App, t time.Duration) {
 	vSpeed := p.vSpeed * delta
 
 	pos := p.GetPosition()
-	if vSpeed != 0 {
-		Instance().Log().Debug("pos: %v fall:%v hv:%.02f hd:%.02f", pos, p.inFall, p.vSpeed, vSpeed)
-	}
+	// if vSpeed != 0 {
+	// 	Instance().Log().Debug("pos: %v fall:%v hv:%.02f hd:%.02f", pos, p.inFall, p.vSpeed, vSpeed)
+	// }
 
-	if p.vSpeed > 0 {
-		npos := math32.NewVector3(pos.X, p.Model.GetBoundBox().BY+vSpeed, pos.Z)
-		block, _ := a.World().GetBlockByVec(*npos)
-		if block != nil {
-			vSpeed = float32(int64(pos.Y)) - pos.Y
-			p.vSpeed = 0
-			p.inFall = true
+	if !p.IsCreatePlayMode() {
+		if p.vSpeed > 0 {
+			npos := math32.NewVector3(pos.X, p.Model.GetBoundBox().BY+vSpeed, pos.Z)
+			block, _ := a.World().GetBlockByVec(*npos)
+			if block != nil {
+				vSpeed = float32(int64(pos.Y)) - pos.Y
+				p.vSpeed = 0
+				p.inFall = true
+			} else {
+				p.vSpeed += DEFAULT_GRAVITY_SPEED * delta
+				p.vSpeed = math32.Clamp(p.vSpeed, MAX_GRAVITY_SPEED, 40)
+				p.inFall = true
+			}
 		} else {
-			p.vSpeed += DEFAULT_GRAVITY_SPEED * delta
-			p.vSpeed = math32.Clamp(p.vSpeed, MAX_GRAVITY_SPEED, 40)
-			p.inFall = true
-		}
-	} else {
-		block, _ := a.World().GetBlockByVec(*pos.Clone().Add(math32.NewVector3(0, vSpeed-0.01, 0)))
-		if block == nil {
-			p.vSpeed += DEFAULT_GRAVITY_SPEED * delta
-			p.vSpeed = math32.Clamp(p.vSpeed, MAX_GRAVITY_SPEED, 40)
-			p.inFall = true
-		} else {
-			vSpeed = float32(int64(pos.Y)) - pos.Y
-			p.vSpeed = 0
-			p.inFall = false
+			block, _ := a.World().GetBlockByVec(*pos.Clone().Add(math32.NewVector3(0, vSpeed-0.01, 0)))
+			if block == nil {
+				p.vSpeed += DEFAULT_GRAVITY_SPEED * delta
+				p.vSpeed = math32.Clamp(p.vSpeed, MAX_GRAVITY_SPEED, 40)
+				p.inFall = true
+			} else {
+				vSpeed = float32(int64(pos.Y)) - pos.Y
+				p.vSpeed = 0
+				p.inFall = false
+			}
 		}
 	}
 
@@ -339,8 +354,8 @@ func (p *Player) Move(a *App, speed float32, vSpeed float32) {
 	}
 
 	if viewport.Y+vSpeed < -10 {
-		vSpeed = float32(AREA_HEIGHT) - 1 - viewport.Y
-		viewport.Y = float32(AREA_HEIGHT) - 1
+		vSpeed = float32(CHUNK_HEIGHT) - 1 - viewport.Y
+		viewport.Y = float32(CHUNK_HEIGHT) - 1
 	}
 	viewport.Add(math32.NewVector3(tcam.X, vSpeed, tcam.Z))
 
@@ -373,11 +388,13 @@ func (p *Player) WreckBlock() {
 }
 
 func (p *Player) PlaceBlock() {
-	b, face := p.GetTarget()
+	Instance().log.Debug("place block! start:%v, end:%v", p.GetViewport(), p.farPos)
+	b, hitPos := p.GetTarget()
 	if b == nil {
 		return
 	}
 
+	face := GetBlockFace(b.GetPosition(), *hitPos)
 	pos := b.GetPosition()
 	switch face {
 	case block.BlockFaceFront:
@@ -395,18 +412,24 @@ func (p *Player) PlaceBlock() {
 	default:
 		return
 	}
+	Instance().Log().Debug("place block -> b:%v hit:%v face:%v place pos: %v", b.GetPosition(), hitPos, face, pos)
 
-	nb := block.NewBlock(block.BlockSoil, pos)
+	placeBlock, _ := Instance().curWorld.GetBlockByVec(pos)
+	if placeBlock != nil {
+		return
+	}
+
+	nb := block.NewBlock(p.inventory[p.curInventoryIdx], pos)
 	Instance().curWorld.PlaceBlock(nb, pos)
 }
 
-func (p *Player) GetTarget() (block.IBlock, block.BlockFace) {
+func (p *Player) GetTarget() (block.IBlock, *math32.Vector3) {
 	b, pos := RayTraceBlock(Instance().curWorld, *p.GetViewport(), p.farPos)
 	if b == nil || pos == nil {
-		return nil, block.BlockFaceNone
+		return nil, nil
 	}
 
-	return b, GetBlockFace(b.GetPosition(), *pos)
+	return b, pos
 }
 
 // onMouse is called when an OnMouseDown/OnMouseUp event is received.
@@ -486,6 +509,16 @@ func (p *Player) onKey(evname string, ev interface{}) {
 			p.moveDirection.Z += 1
 		case window.KeySpace:
 			p.Jump()
+		case window.KeyLeftShift:
+			if p.IsCreatePlayMode() {
+				p.vSpeed = -PLAYER_JUMP_SPEED
+			}
+		case window.Key1:
+			p.curInventoryIdx = 0
+		case window.Key2:
+			p.curInventoryIdx = 1
+		case window.Key3:
+			p.curInventoryIdx = 2
 		}
 	case window.OnKeyUp:
 		switch kev.Key {
@@ -497,6 +530,10 @@ func (p *Player) onKey(evname string, ev interface{}) {
 			p.moveDirection.Z += 1
 		case window.KeyRight, window.KeyD:
 			p.moveDirection.Z -= 1
+		case window.KeySpace, window.KeyLeftShift:
+			if p.IsCreatePlayMode() {
+				p.vSpeed = 0
+			}
 		}
 	}
 }
@@ -535,4 +572,8 @@ func (p *Player) addWreckLine() {
 	p.wreckLine.SetPositionVec(p.GetViewport())
 	p.wreckLine.SetPosition(2, 2, 2)
 	p.Add(p.wreckLine)
+}
+
+func (p *Player) IsCreatePlayMode() bool {
+	return p.playMode == PlayModeCreate
 }

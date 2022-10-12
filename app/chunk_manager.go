@@ -6,6 +6,7 @@ import (
 	"github.com/g3n/engine/core"
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/util/logger"
+	"github.com/weiWang95/mcworld/lib/util"
 )
 
 type UnloadingChunk struct {
@@ -38,7 +39,7 @@ func NewChunkManager() *ChunkManager {
 
 	cm.Node = *core.NewNode()
 
-	cm.loadDistance = 2
+	cm.loadDistance = 1
 	cm.renderDistance = 1
 
 	cm.loadingChunkMap = make(map[ChunkPos]interface{})
@@ -174,33 +175,40 @@ func (cm *ChunkManager) StepLoadChunk(a *App) {
 	if len(cm.loadingChunkMap) == 0 {
 		return
 	}
-	playerPos := a.Player().GetPosition()
+	a.Log().Debug("loading chunk count: %v", len(cm.loadingChunkMap))
 
-	var nearestPos ChunkPos
-	minDistance := float32(1000)
-	for pos, _ := range cm.loadingChunkMap {
-		d := SquareDistance(*math32.NewVector3(playerPos.X, 0, playerPos.Z), *math32.NewVector3(float32(pos.X), 0, float32(pos.Z)))
-		if d < minDistance {
-			minDistance = d
-			nearestPos = pos
-		}
+	playerPos := a.Player().GetPosition()
+	chunkPos := make([]ChunkPos, 0, len(cm.loadingChunkMap))
+	for p, _ := range cm.loadingChunkMap {
+		chunkPos = append(chunkPos, p)
 	}
+	nearestPos := cm.GetNearestChunk(*playerPos, chunkPos)
 
 	a.Log().Debug("load chunk: %v", nearestPos)
 
 	chunk := NewChunk(nearestPos.X, nearestPos.Z)
 	chunk.Start(a)
-	chunk.Rendered(a)
 	cm.Add(chunk)
 	a.SaveManager().SaveChunk(chunk)
 	cm.loadedChunkMap[nearestPos] = chunk
-
 	delete(cm.loadingChunkMap, nearestPos)
+
+	a.World().bu.RefreshChunkBlocks(chunk)
+	a.World().lu.AddWaitLumChunk(nearestPos)
+}
+
+func (cm *ChunkManager) Chunk(cpos ChunkPos) *Chunk {
+	return cm.loadedChunkMap[cpos]
 }
 
 func (cm *ChunkManager) GetChunk(x, y, z float32) *Chunk {
 	pos := ToChunkPos(math32.NewVector3(x, 0, z))
-	return cm.loadedChunkMap[pos]
+	return cm.Chunk(pos)
+}
+
+func (cm *ChunkManager) GetChunkByPos(pos util.Pos) *Chunk {
+	p := pos.ToVec3()
+	return cm.GetChunk(p.X, p.X, p.Z)
 }
 
 func (cm *ChunkManager) SaveAll() {
@@ -211,4 +219,18 @@ func (cm *ChunkManager) SaveAll() {
 	for _, item := range cm.UnloadingChunkMap {
 		Instance().SaveManager().SaveChunk(item.Chunk)
 	}
+}
+
+func (cm *ChunkManager) GetNearestChunk(pos math32.Vector3, data []ChunkPos) ChunkPos {
+	var nearestPos ChunkPos
+	minDistance := float32(1000)
+	for _, p := range data {
+		d := SquareDistance(*math32.NewVector3(pos.X, 0, pos.Z), *math32.NewVector3(float32(p.X), 0, float32(p.Z)))
+		if d < minDistance {
+			minDistance = d
+			nearestPos = p
+		}
+	}
+
+	return nearestPos
 }

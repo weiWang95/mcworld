@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 
 	"github.com/vmihailenco/msgpack"
 	"github.com/weiWang95/mcworld/app/block"
@@ -11,6 +12,8 @@ import (
 )
 
 type ISaveManager interface {
+	LoadSeed() int64
+	SaveSeed(seed int64) error
 	SaveChunk(data *Chunk) error
 	LoadChunk(pos ChunkPos) *ChunkData
 }
@@ -69,6 +72,43 @@ func (sm *fileSaveManager) Stop() {
 	close(sm.ch)
 }
 
+func (sm *fileSaveManager) LoadSeed() int64 {
+	seedFile := sm.seedFileName()
+	if _, err := os.Stat(seedFile); err != nil {
+		Instance().Log().Debug("seed file:%s not exist", seedFile)
+		return 0
+	}
+
+	data, err := ioutil.ReadFile(seedFile)
+	if err != nil {
+		Instance().Log().Debug("read seed file:%s fail: %v", seedFile, err)
+		return 0
+	}
+
+	seed, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		Instance().Log().Debug("seed file:%s invalid: %v", seedFile, err)
+		return 0
+	}
+
+	return seed
+}
+
+func (sm *fileSaveManager) SaveSeed(seed int64) error {
+	file, err := os.OpenFile(sm.seedFileName(), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0777)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.Write([]byte(strconv.FormatInt(seed, 10)))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (sm *fileSaveManager) SaveChunk(c *Chunk) error {
 	data := ConvertChunk(c)
 	sm.ch <- &data
@@ -116,6 +156,10 @@ func (sm *fileSaveManager) LoadChunk(pos ChunkPos) *ChunkData {
 
 func (sm *fileSaveManager) chunkFileName(pos ChunkPos) string {
 	return fmt.Sprintf("%s/%d_%d.chunk", sm.chunkDir, pos.X, pos.Z)
+}
+
+func (sm *fileSaveManager) seedFileName() string {
+	return fmt.Sprintf("%s/seed", sm.baseDir)
 }
 
 type cPos uint16

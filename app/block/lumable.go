@@ -15,3 +15,7 @@ func NewBaseLumable(lum uint8) ILumable {
 func (l *BaseLumable) GetBlockLum() uint8 {
 	return l.lum
 }
+
+func (l *BaseLumable) Lumable() bool {
+	return l.lum > 0
+}

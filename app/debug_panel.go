@@ -5,6 +5,7 @@ import (
 
 	"github.com/g3n/engine/gui"
 	"github.com/g3n/engine/math32"
+	"github.com/weiWang95/mcworld/app/block"
 )
 
 var transparentColor = math32.Color4{0, 0, 0, 0.1}
@@ -85,16 +86,42 @@ func (p *DebugPanel) init() {
 
 func (p *DebugPanel) update() {
 	player := p.app.Player()
+	pos := player.GetPosition()
+	lum, _ := p.app.World().GetLum(pos.X, pos.Y, pos.Z)
 
-	p.pos.SetText(p.formatPos(*player.GetPosition()))
+	p.pos.SetText(fmt.Sprintf("%s %s", p.formatPos(*pos), p.formatLum(lum)))
 	p.viewPort.SetText(p.formatPos(*player.GetViewport()))
 	p.camera.SetText(p.formatPos(player.Camera.Position()))
 	p.farPos.SetText(p.formatPos(player.farPos))
-	p.target.SetText(fmt.Sprintf("T: %T V:%v P:%s", player.Target.b, player.Target.Visible(), p.formatPos(player.Target.Position())))
+
+	targetPos := player.Target.Position()
+	targetLum, _ := p.app.World().GetLum(targetPos.X, targetPos.Y, targetPos.Z)
+	targetTopLum, _ := p.app.World().GetLum(targetPos.X, targetPos.Y+1, targetPos.Z)
+	p.target.SetText(fmt.Sprintf("T: %T V:%v P:%s %s %s, PT: %s", player.Target.b, player.Target.Visible(), p.formatPos(targetPos), p.formatLum(targetLum), p.formatFaceLum(player.Target.b), p.formatLum(targetTopLum)))
 }
 
 func (p *DebugPanel) formatPos(pos math32.Vector3) string {
 	return fmt.Sprintf("X: %.1f, Y: %.1f, Z: %.1f", pos.X, pos.Y, pos.Z)
+}
+
+func (p *DebugPanel) formatLum(lum Luminance) string {
+	return fmt.Sprintf("Lum:[S:%v, B:%v]", lum.SunLum(), lum.BlockLum())
+}
+
+func (p *DebugPanel) formatFaceLum(b block.IBlock) string {
+	if b == nil {
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"Face Lum:[F:%d B:%d L:%d R:%d T:%d B:%d]",
+		b.GetFaceLum(int(block.BlockFaceFront)),
+		b.GetFaceLum(int(block.BlockFaceBack)),
+		b.GetFaceLum(int(block.BlockFaceLeft)),
+		b.GetFaceLum(int(block.BlockFaceRight)),
+		b.GetFaceLum(int(block.BlockFaceTop)),
+		b.GetFaceLum(int(block.BlockFaceBottom)),
+	)
 }
 
 func newDefaultPanel() *gui.Panel {

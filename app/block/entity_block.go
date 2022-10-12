@@ -9,6 +9,8 @@ import (
 	"github.com/weiWang95/mcworld/app/loader"
 )
 
+var _ IBlock = (*EntityBlock)(nil)
+
 type EntityBlock struct {
 	Block
 
@@ -16,8 +18,8 @@ type EntityBlock struct {
 	mats []material.IMaterial
 }
 
-func (b *EntityBlock) Init() {
-	b.Block.Init()
+func (b *EntityBlock) Init(id BlockId) {
+	b.Block.Init(id)
 }
 
 func (b *EntityBlock) SetVisible(state bool) {
@@ -50,17 +52,33 @@ func (b *EntityBlock) AddTo(n core.INode) {
 			b.mesh.AddGroupMaterial(mats[i], i)
 		}
 	}
-	pos := b.Pos.Clone().Add(math32.NewVector3(0.5, 0, 0.5))
+	pos := b.Pos.Clone().Add(math32.NewVector3(0.5, 0.5, 0.5))
 	b.mesh.SetPositionVec(pos)
 
 	n.GetNode().Add(b.mesh)
 }
 
 func (b *EntityBlock) SetLum(lum uint8, idx int) {
-	b.mats[idx].(*material.Standard).SetAmbientColor(math32.NewColor("white").MultiplyScalar(float32(lum)/15.0*0.5 + 0.5))
+	b.mats[idx].(*material.Standard).SetColor(math32.NewColor("white").MultiplyScalar(float32(lum)/15.0*0.8 + 0.2))
+}
+
+func (b *EntityBlock) GetFaceLum(idx int) uint8 {
+	return uint8(b.mats[idx].(*material.Standard).AmbientColor().B * 15)
+}
+
+func (b *EntityBlock) RefreshLum() {
+	// b.mesh.ClearMaterials()
+	// for i, _ := range b.mats {
+	// 	b.mesh.AddGroupMaterial(b.mats[i], i)
+	// }
+	// b.mesh.SetChanged(true)
 }
 
 func (b *EntityBlock) RemoveFrom(n core.INode) {
+	if b.mesh == nil {
+		return
+	}
+
 	b.mesh.ClearMaterials()
 	n.GetNode().Remove(b.mesh)
 	b.mesh.Dispose()

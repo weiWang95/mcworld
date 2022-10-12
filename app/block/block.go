@@ -8,7 +8,8 @@ type Block struct {
 	Pos   math32.Vector3
 }
 
-func (b *Block) Init() {
+func (b *Block) Init(id BlockId) {
+	b.Id = id
 	b.Pos = math32.Vector3{}
 }
 
@@ -43,3 +44,5 @@ func (b *Block) GetPosition() math32.Vector3 {
 }
 
 func (b *Block) SetLum(lum uint8, idx int) {}
+func (b *Block) RefreshLum()               {}
+func (b *Block) GetFaceLum(idx int) uint8  { return 0 }

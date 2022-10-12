@@ -8,6 +8,10 @@ import (
 	"github.com/weiWang95/mcworld/lib/util"
 )
 
+func PosOverRange(pos util.Pos) bool {
+	return pos.Y < 0 || pos.Y >= CHUNK_HEIGHT
+}
+
 // 获取射线与X平面焦点
 func GetIntermediateWithX(start, end math32.Vector3, x float32) *math32.Vector3 {
 	return GetIntermediate(start, end, &x, nil, nil)

@@ -19,7 +19,7 @@ func (l Luminance) BlockLum() uint8 {
 }
 
 func (l Luminance) SetSunLum(sunLum uint8) Luminance {
-	return Luminance(uint8(l)&LUM_BLOCK | sunLum)
+	return Luminance(uint8(l)&LUM_BLOCK | (sunLum << 4))
 }
 
 func (l Luminance) SetBlockLum(blockLum uint8) Luminance {
@@ -35,6 +35,14 @@ func (l Luminance) Lum() uint8 {
 	}
 
 	return block
+}
+
+func (l Luminance) CurLum(night bool) uint8 {
+	if night {
+		return l.BlockLum()
+	}
+
+	return l.Lum()
 }
 
 func MaxLum(l1, l2 Luminance) Luminance {

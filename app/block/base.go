@@ -8,31 +8,24 @@ import (
 	"github.com/g3n/engine/math32"
 )
 
-type BlockId uint64
-
-const (
-	BlockAir BlockId = iota + 1
-	BlockSoil
-)
-
 type BlockState uint8
 
 type BlockFace int
 
 const (
 	BlockFaceNone   BlockFace = iota - 1
-	BlockFaceFront            // 前 0
-	BlockFaceBack             // 后 1
-	BlockFaceLeft             // 左 2
-	BlockFaceRight            // 右 3
-	BlockFaceTop              // 上 4
-	BlockFaceBottom           // 下 5
+	BlockFaceBack             // 后 0
+	BlockFaceFront            // 前 1
+	BlockFaceTop              // 上 2
+	BlockFaceBottom           // 下 3
+	BlockFaceRight            // 右 4
+	BlockFaceLeft             // 左 5
 )
 
 var blockMap map[BlockId]IBlock
 
 type IBlock interface {
-	Init()
+	Init(id BlockId)
 	GetId() BlockId
 	GetState() BlockState
 	GetBlockLum() uint8
@@ -43,8 +36,10 @@ type IBlock interface {
 	SetPosition(pos math32.Vector3)
 	GetPosition() math32.Vector3
 	SetLum(lum uint8, idx int)
+	RefreshLum()
 	AddTo(n core.INode)
 	RemoveFrom(n core.INode)
+	GetFaceLum(idx int) uint8
 }
 
 func RegisterBlock(id BlockId, b IBlock) {
@@ -62,11 +57,7 @@ func RegisterBlock(id BlockId, b IBlock) {
 func NewBlock(id BlockId, pos math32.Vector3) IBlock {
 	v := reflect.New(reflect.TypeOf(blockMap[id]).Elem())
 	b := v.Interface().(IBlock)
-	b.Init()
+	b.Init(id)
 	b.SetPosition(pos)
 	return b
-}
-
-func GetBlockTexturePath(id BlockId) string {
-	return fmt.Sprintf("blocks/%d.png", id)
 }
