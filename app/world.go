@@ -8,7 +8,7 @@ import (
 	"github.com/g3n/engine/light"
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/util/logger"
-	"github.com/weiWang95/mcworld/app/block"
+	"github.com/weiWang95/mcworld/app/blockv2"
 	"github.com/weiWang95/mcworld/lib/util"
 )
 
@@ -81,7 +81,7 @@ func (w *World) setup(a *App) {
 	// seed := int64(202210080000000)
 	w.setupWorldGenerator(a.seed)
 
-	w.cm = NewChunkManager()
+	w.cm = NewChunkManager(a)
 	w.cm.Start(a)
 	w.Add(w.cm)
 
@@ -109,11 +109,11 @@ func (w *World) updateLight(a *App, t time.Duration) {
 	w.lightCount += float64(t / (10 * time.Second))
 }
 
-func (w *World) GetBlockByVec(vec math32.Vector3) (block block.IBlock, chunkLoaded bool) {
+func (w *World) GetBlockByVec(vec math32.Vector3) (block *blockv2.Block, chunkLoaded bool) {
 	return w.GetBlockByPosition(vec.X, vec.Y, vec.Z)
 }
 
-func (w *World) GetBlockByPosition(x, y, z float32) (block block.IBlock, chunkLoaded bool) {
+func (w *World) GetBlockByPosition(x, y, z float32) (block *blockv2.Block, chunkLoaded bool) {
 	chunk := w.cm.GetChunk(x, y, z)
 	if chunk == nil {
 		return nil, false
@@ -146,7 +146,7 @@ func (w *World) WreckBlock(pos math32.Vector3) {
 	}
 }
 
-func (w *World) PlaceBlock(block block.IBlock, pos math32.Vector3) {
+func (w *World) PlaceBlock(block *blockv2.Block, pos math32.Vector3) {
 	w.Debug("place block:%T -> %v", block, pos)
 	chunk := w.cm.GetChunk(pos.X, pos.Y, pos.Z)
 	if chunk.ReplaceBlock(pos, block) {

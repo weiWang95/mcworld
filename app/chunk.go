@@ -9,7 +9,7 @@ import (
 	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
-	"github.com/weiWang95/mcworld/app/block"
+	"github.com/weiWang95/mcworld/app/blockv2"
 	"github.com/weiWang95/mcworld/lib/util"
 )
 
@@ -31,12 +31,13 @@ const (
 type Chunk struct {
 	core.Node
 
-	State ChunkState
+	State  ChunkState
+	inView bool
 
 	pos    *ChunkPos
 	actPos *math32.Vector3
 
-	blocks [CHUNK_HEIGHT][CHUNK_WIDTH][CHUNK_WIDTH]block.IBlock
+	blocks [CHUNK_HEIGHT][CHUNK_WIDTH][CHUNK_WIDTH]*blockv2.Block
 	lums   [CHUNK_HEIGHT][CHUNK_WIDTH][CHUNK_WIDTH]Luminance
 	axis   core.INode
 }
@@ -98,7 +99,9 @@ func (c *Chunk) Load(a *App) {
 				pos := math32.NewVector3(c.actPos.X+float32(x), float32(y), c.actPos.Z+float32(z))
 				id := wg.GetBlock(float64(pos.X), float64(pos.Y), float64(pos.Z))
 				if id != 0 {
-					b := block.NewBlock(id, *pos)
+					b := a.bm.NewBlock(blockv2.BlockId(id))
+					b.SetPositionVec(pos)
+					// b := block.NewBlock(id, *pos)
 					c.blocks[y][x][z] = b
 					c.blocks[y][x][z].AddTo(c)
 				}
@@ -116,7 +119,9 @@ func (c *Chunk) LoadFromSave(a *App, data ChunkData) {
 				pos := math32.NewVector3(c.actPos.X+float32(x), float32(y), c.actPos.Z+float32(z))
 				d := data.GetBlock(int(x), int(y), int(z))
 				if d != nil {
-					b := block.NewBlock(d.Id, *pos)
+					// b := block.NewBlock(d.Id, *pos)
+					b := a.bm.NewBlock(blockv2.BlockId(d.Id))
+					b.SetPositionVec(pos)
 					c.blocks[y][x][z] = b
 					c.blocks[y][x][z].AddTo(c)
 				}
@@ -127,12 +132,18 @@ func (c *Chunk) LoadFromSave(a *App, data ChunkData) {
 }
 
 func (c *Chunk) Rendered(a *App) {
+	if c.Visible() {
+		return
+	}
 	c.SetVisible(true)
 
 	c.State = Rendered
 }
 
 func (c *Chunk) Unrendered() {
+	if !c.Visible() {
+		return
+	}
 	c.SetVisible(false)
 
 	c.State = Loaded
@@ -186,7 +197,7 @@ func (c *Chunk) GetWorldPos(x, y, z int64) util.Pos {
 	return util.NewPos(bx, int64(y), bz)
 }
 
-func (c *Chunk) GetBlock(x, y, z float32) block.IBlock {
+func (c *Chunk) GetBlock(x, y, z float32) *blockv2.Block {
 	pos := c.convertWorldPos(x, y, z)
 	return c.getBlock(pos.X, pos.Y, pos.Z)
 }
@@ -197,7 +208,7 @@ func (c *Chunk) posOverRange(x, y, z int64) bool {
 		z < 0 || z >= CHUNK_WIDTH
 }
 
-func (c *Chunk) getBlock(x, y, z int64) block.IBlock {
+func (c *Chunk) getBlock(x, y, z int64) *blockv2.Block {
 	if c.posOverRange(x, y, z) {
 		return nil
 	}
@@ -205,7 +216,7 @@ func (c *Chunk) getBlock(x, y, z int64) block.IBlock {
 	return c.blocks[y][x][z]
 }
 
-func (c *Chunk) getBlockByPos(pos util.Pos) block.IBlock {
+func (c *Chunk) getBlockByPos(pos util.Pos) *blockv2.Block {
 	return c.getBlock(pos.X, pos.Y, pos.Z)
 }
 
@@ -213,7 +224,7 @@ func (c *Chunk) BlockPos(x, y, z int64) math32.Vector3 {
 	return *c.actPos.Clone().Add(math32.NewVector3(float32(x), float32(y), float32(z)))
 }
 
-func (c *Chunk) ReplaceBlock(pos math32.Vector3, block block.IBlock) bool {
+func (c *Chunk) ReplaceBlock(pos math32.Vector3, block *blockv2.Block) bool {
 	Instance().Log().Debug("replace block: pos -> %v, to -> %v", pos, block)
 
 	if pos.Y < 0 || pos.Y >= float32(CHUNK_HEIGHT) {
@@ -234,7 +245,7 @@ func (c *Chunk) ReplaceBlock(pos math32.Vector3, block block.IBlock) bool {
 
 	c.blocks[int64(pos.Y)][bx][bz] = block
 	if block != nil {
-		block.SetPosition(pos)
+		block.SetPositionVec(&pos)
 		block.AddTo(c)
 		block.SetVisible(true)
 	}
@@ -261,4 +272,19 @@ func (c *Chunk) SetLum(pos util.Pos, lum Luminance) {
 
 func (c *Chunk) ConvertChunkPos(pos util.Pos) util.Pos {
 	return util.NewPos(pos.X-c.pos.X*CHUNK_WIDTH, pos.Y, pos.Z-c.pos.Z*CHUNK_WIDTH)
+}
+
+func (c *Chunk) RangePos(fn func(pos math32.Vector3) bool) {
+	if fn(*c.actPos) {
+		return
+	}
+	if fn(*c.actPos.Clone().Add(math32.NewVector3(float32(CHUNK_WIDTH), 0, 0))) {
+		return
+	}
+	if fn(*c.actPos.Clone().Add(math32.NewVector3(0, 0, float32(CHUNK_WIDTH)))) {
+		return
+	}
+	if fn(*c.actPos.Clone().Add(math32.NewVector3(float32(CHUNK_WIDTH), 0, float32(CHUNK_WIDTH)))) {
+		return
+	}
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/g3n/engine/util/logger"
 	"github.com/g3n/engine/window"
 	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/weiWang95/mcworld/app/blockv2"
 )
 
 var instance *App
@@ -29,6 +30,7 @@ type App struct {
 	scene    *core.Node
 	curWorld *World
 	sm       ISaveManager
+	bm       *blockv2.BlockManager
 
 	seed int64
 
@@ -110,8 +112,10 @@ func Create() *App {
 
 	a.setupScene()
 
-	a.sm = newFileSaveManager()
+	a.sm = newFileSaveManager(a)
 	a.initSeed()
+
+	a.bm = blockv2.NewBlockManager(a.log, a.dirData)
 
 	a.curWorld = NewWorld()
 	a.curWorld.Start(a)

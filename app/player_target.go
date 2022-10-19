@@ -7,13 +7,13 @@ import (
 	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
-	"github.com/weiWang95/mcworld/app/block"
+	"github.com/weiWang95/mcworld/app/blockv2"
 )
 
 type PlayerTarget struct {
 	core.Node
 
-	b     block.IBlock
+	b     *blockv2.Block
 	box   *graphic.Lines
 	point *graphic.Mesh
 }
@@ -28,7 +28,7 @@ func NewPlayerTarget() *PlayerTarget {
 	return target
 }
 
-func (target *PlayerTarget) SetTarget(b block.IBlock, hit *math32.Vector3) {
+func (target *PlayerTarget) SetTarget(b *blockv2.Block, hit *math32.Vector3) {
 	target.b = b
 	target.SetVisible(target.b != nil)
 	if target.b != nil {

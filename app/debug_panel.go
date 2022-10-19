@@ -6,6 +6,7 @@ import (
 	"github.com/g3n/engine/gui"
 	"github.com/g3n/engine/math32"
 	"github.com/weiWang95/mcworld/app/block"
+	"github.com/weiWang95/mcworld/app/blockv2"
 )
 
 var transparentColor = math32.Color4{0, 0, 0, 0.1}
@@ -19,6 +20,7 @@ type DebugPanel struct {
 
 	app *App
 
+	chunk    *gui.Label
 	pos      *gui.Label
 	viewPort *gui.Label
 	camera   *gui.Label
@@ -45,6 +47,13 @@ func (p *DebugPanel) init() {
 	panel.SetColor4(&transparentColor)
 	panel.SetLayoutParams(&gui.DockLayoutParams{Edge: gui.DockTop})
 	panel.SetLayout(gui.NewDockLayout())
+
+	// Position
+	p0 := newDefaultPanel()
+	p0.Add(newDefaultLabel("Chunk:"))
+	p.chunk = newDefaultLabel(" ")
+	p0.Add(p.chunk)
+	panel.Add(p0)
 
 	// Position
 	p1 := newDefaultPanel()
@@ -89,6 +98,7 @@ func (p *DebugPanel) update() {
 	pos := player.GetPosition()
 	lum, _ := p.app.World().GetLum(pos.X, pos.Y, pos.Z)
 
+	p.chunk.SetText(fmt.Sprintf("R:%d U:%d", p.app.curWorld.cm.renderedCount, p.app.curWorld.cm.unrenderedCount))
 	p.pos.SetText(fmt.Sprintf("%s %s", p.formatPos(*pos), p.formatLum(lum)))
 	p.viewPort.SetText(p.formatPos(*player.GetViewport()))
 	p.camera.SetText(p.formatPos(player.Camera.Position()))
@@ -108,7 +118,7 @@ func (p *DebugPanel) formatLum(lum Luminance) string {
 	return fmt.Sprintf("Lum:[S:%v, B:%v]", lum.SunLum(), lum.BlockLum())
 }
 
-func (p *DebugPanel) formatFaceLum(b block.IBlock) string {
+func (p *DebugPanel) formatFaceLum(b *blockv2.Block) string {
 	if b == nil {
 		return ""
 	}

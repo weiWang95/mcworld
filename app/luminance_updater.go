@@ -5,6 +5,7 @@ import (
 
 	"github.com/g3n/engine/util/logger"
 	"github.com/weiWang95/mcworld/app/block"
+	"github.com/weiWang95/mcworld/app/blockv2"
 	"github.com/weiWang95/mcworld/lib/util"
 )
 
@@ -13,8 +14,8 @@ type LuminanceUpdater struct {
 	world *World
 	log   *logger.Logger
 
-	waitLumMap   map[ChunkPos]interface{}
-	switchLumMap map[ChunkPos]interface{}
+	waitLumMap   map[string]ChunkPos
+	switchLumMap map[string]ChunkPos
 
 	lumTicker       *TickChecker
 	lumSwitchTicker *TickChecker
@@ -29,7 +30,7 @@ func NewLuminanceUpdater(app *App) *LuminanceUpdater {
 	u.lumTicker = NewTickChecker(4)
 	u.lumSwitchTicker = NewTickChecker(2)
 
-	u.waitLumMap = make(map[ChunkPos]interface{})
+	u.waitLumMap = make(map[string]ChunkPos)
 
 	return u
 }
@@ -44,7 +45,7 @@ func (u *LuminanceUpdater) Update(app *App, t time.Duration) {
 }
 
 func (u *LuminanceUpdater) AddWaitLumChunk(cpos ChunkPos) {
-	u.waitLumMap[cpos] = nil
+	u.waitLumMap[cpos.Id()] = cpos
 }
 
 func (u *LuminanceUpdater) StepInitLum() {
@@ -53,12 +54,12 @@ func (u *LuminanceUpdater) StepInitLum() {
 	}
 	// Instance().Log().Debug("wait init lum chunks:%d", len(u.waitLumMap))
 
-	for cpos, _ := range u.waitLumMap {
+	for key, cpos := range u.waitLumMap {
 		// Instance().Log().Debug("init lum chunk:%v", cpos)
 
 		u.InitChunkLum(cpos)
 
-		delete(u.waitLumMap, cpos)
+		delete(u.waitLumMap, key)
 		break
 	}
 }
@@ -102,16 +103,16 @@ func (u *LuminanceUpdater) initChunkSunLum(chunk *Chunk) map[string]util.Pos {
 }
 
 func (u *LuminanceUpdater) UpdateSumLum() {
-	u.switchLumMap = map[ChunkPos]interface{}{}
-	for pos, _ := range u.world.cm.loadedChunkMap {
-		u.AddWaitLumChunk(pos)
+	u.switchLumMap = map[string]ChunkPos{}
+	for _, c := range u.world.cm.loadedChunkMap {
+		u.AddWaitLumChunk(*c.pos)
 	}
 }
 
 func (u *LuminanceUpdater) SwitchDayNight() {
-	u.switchLumMap = map[ChunkPos]interface{}{}
-	for pos, _ := range u.world.cm.loadedChunkMap {
-		u.switchLumMap[pos] = nil
+	u.switchLumMap = map[string]ChunkPos{}
+	for _, c := range u.world.cm.loadedChunkMap {
+		u.switchLumMap[c.pos.Id()] = *c.pos
 	}
 }
 
@@ -123,11 +124,11 @@ func (u *LuminanceUpdater) StepSwitchDayNight() {
 
 	playerPos := u.app.Player().GetPosition()
 	chunkPos := make([]ChunkPos, 0, len(u.switchLumMap))
-	for p, _ := range u.switchLumMap {
+	for _, p := range u.switchLumMap {
 		chunkPos = append(chunkPos, p)
 	}
 	nearestPos := u.world.cm.GetNearestChunk(*playerPos, chunkPos)
-	for cpos, _ := range u.switchLumMap {
+	for key, cpos := range u.switchLumMap {
 		// Instance().Log().Debug("switch lum chunk:%v", cpos)
 		if cpos.X != nearestPos.X || cpos.Z != nearestPos.Z {
 			continue
@@ -138,7 +139,7 @@ func (u *LuminanceUpdater) StepSwitchDayNight() {
 			u.refreshChunkLum(chunk)
 		}
 
-		delete(u.switchLumMap, cpos)
+		delete(u.switchLumMap, key)
 		break
 	}
 }
@@ -262,7 +263,7 @@ func (u *LuminanceUpdater) updateLum(pos util.Pos, times int) []util.Pos {
 		u.setLum(pos, cur)
 	}
 
-	if (b == nil || !b.Lumable()) && oldLum == cur {
+	if (b == nil || !b.GetLumable()) && oldLum == cur {
 		return nil
 	}
 
@@ -348,10 +349,11 @@ func (u *LuminanceUpdater) refreshBlockLum(pos util.Pos) {
 	pos.RangeAdjoin(func(p util.Pos, face block.BlockFace) {
 		faceBlock, loaded := u.world.GetBlockByVec(p.ToVec3())
 		if loaded && faceBlock == nil {
-			b.SetLum(u.CurLum(u.getLum(p)), int(face))
+			// b.SetLum(u.CurLum(u.getLum(p)), int(face))
+			b.SetFaceLum(blockv2.BlockFace(face), u.CurLum(u.getLum(p)))
 		}
 	})
-	b.RefreshLum()
+	// b.RefreshLum()
 }
 
 func (u *LuminanceUpdater) CurLum(l Luminance) uint8 {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/g3n/engine/util/logger"
+	"github.com/weiWang95/mcworld/app/blockv2"
 	"github.com/weiWang95/mcworld/lib/util"
 )
 
@@ -47,7 +48,7 @@ func (u *BlockUpdater) RefreshChunkBlocks(chunk *Chunk) {
 		}
 	}
 
-	chunk.Rendered(u.app)
+	// chunk.Rendered(u.app)
 }
 
 func (u *BlockUpdater) TiggerUpdate(tiggerPos util.Pos) {
@@ -69,16 +70,35 @@ func (u *BlockUpdater) updateBlock(pos util.Pos) bool {
 		return false
 	}
 
-	if !u.BlockExist(pos.SubX(1)) || !u.BlockExist(pos.AddX(1)) ||
-		!u.BlockExist(pos.SubY(1)) || !u.BlockExist(pos.AddY(1)) ||
-		!u.BlockExist(pos.SubZ(1)) || !u.BlockExist(pos.AddZ(1)) {
-		b.SetVisible(true)
-		return true
-	}
+	leftVisible := !u.BlockExist(pos.SubX(1))
+	b.SetFaceVisible(blockv2.BlockFaceLeft, leftVisible)
 
-	b.SetVisible(false)
+	rightVisible := !u.BlockExist(pos.AddX(1))
+	b.SetFaceVisible(blockv2.BlockFaceRight, rightVisible)
 
-	return true
+	frontVisible := !u.BlockExist(pos.SubZ(1))
+	b.SetFaceVisible(blockv2.BlockFaceFront, frontVisible)
+
+	backVisible := !u.BlockExist(pos.AddZ(1))
+	b.SetFaceVisible(blockv2.BlockFaceBack, backVisible)
+
+	bottomVisible := !u.BlockExist(pos.SubY(1))
+	b.SetFaceVisible(blockv2.BlockFaceBottom, bottomVisible)
+
+	topVisible := !u.BlockExist(pos.AddY(1))
+	b.SetFaceVisible(blockv2.BlockFaceTop, topVisible)
+
+	// if !u.BlockExist(pos.SubX(1)) || !u.BlockExist(pos.AddX(1)) ||
+	// 	!u.BlockExist(pos.SubY(1)) || !u.BlockExist(pos.AddY(1)) ||
+	// 	!u.BlockExist(pos.SubZ(1)) || !u.BlockExist(pos.AddZ(1)) {
+	// 	b.SetVisible(true)
+	// 	return true
+	// }
+
+	visible := leftVisible || rightVisible || frontVisible || backVisible || bottomVisible || topVisible
+
+	b.SetVisible(visible)
+	return visible
 }
 
 func (u *BlockUpdater) BlockExist(pos util.Pos) bool {

@@ -15,6 +15,7 @@ func LoadBlockMaterial(id uint64) []material.IMaterial {
 		}
 
 		mat := material.NewStandard(math32.NewColor("white"))
+		mat.SetSide(material.SideFront)
 		mat.AddTexture(tex)
 		mats = append(mats, mat)
 	}

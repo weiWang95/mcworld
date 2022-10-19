@@ -13,6 +13,7 @@ var _ IBlock = (*EntityBlock)(nil)
 
 type EntityBlock struct {
 	Block
+	BaseDestructible
 
 	mesh *graphic.Mesh
 	mats []material.IMaterial

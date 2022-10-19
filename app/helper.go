@@ -5,6 +5,7 @@ import (
 
 	"github.com/g3n/engine/math32"
 	"github.com/weiWang95/mcworld/app/block"
+	"github.com/weiWang95/mcworld/app/blockv2"
 	"github.com/weiWang95/mcworld/lib/util"
 )
 
@@ -181,7 +182,7 @@ func CollisionRayTrace(box *BoundBox, start, end math32.Vector3) *math32.Vector3
 	return hitPos
 }
 
-func RayTraceBlock(world *World, start, end math32.Vector3) (block.IBlock, *math32.Vector3) {
+func RayTraceBlock(world *World, start, end math32.Vector3) (*blockv2.Block, *math32.Vector3) {
 	// Instance().log.Debug("start ray trace block! start:%v, end:%v", start, end)
 
 	startX, startY, startZ := util.FloorFloat(start.X), util.FloorFloat(start.Y), util.FloorFloat(start.Z)
@@ -299,7 +300,7 @@ func RayTraceBlock(world *World, start, end math32.Vector3) (block.IBlock, *math
 }
 
 // BlockIsTransparent 方块是否透明
-func BlockIsTransparent(block block.IBlock, chunkLoaded bool) bool {
+func BlockIsTransparent(block *blockv2.Block, chunkLoaded bool) bool {
 	if !chunkLoaded {
 		return false
 	}

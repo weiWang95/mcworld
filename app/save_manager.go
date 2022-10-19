@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/vmihailenco/msgpack"
-	"github.com/weiWang95/mcworld/app/block"
+	"github.com/weiWang95/mcworld/app/blockv2"
 	"github.com/weiWang95/mcworld/lib/util"
 )
 
@@ -19,14 +19,16 @@ type ISaveManager interface {
 }
 
 type fileSaveManager struct {
-	ch chan *ChunkData
+	app *App
+	ch  chan *ChunkData
 
 	baseDir  string
 	chunkDir string
 }
 
-func newFileSaveManager() ISaveManager {
+func newFileSaveManager(app *App) ISaveManager {
 	sm := new(fileSaveManager)
+	sm.app = app
 	sm.baseDir = util.AbsPath("userdata/save")
 	sm.chunkDir = util.AbsPath(fmt.Sprintf("%s/world/w0", sm.baseDir))
 	sm.ch = make(chan *ChunkData, 20)
@@ -62,7 +64,7 @@ func (sm *fileSaveManager) Start() {
 	util.SafeGo(func() {
 		for data := range sm.ch {
 			if err := sm.saveChunk(data); err != nil {
-				Instance().Log().Error("save chunk fail:", err.Error())
+				sm.app.Log().Error("save chunk fail:", err.Error())
 			}
 		}
 	})
@@ -75,19 +77,19 @@ func (sm *fileSaveManager) Stop() {
 func (sm *fileSaveManager) LoadSeed() int64 {
 	seedFile := sm.seedFileName()
 	if _, err := os.Stat(seedFile); err != nil {
-		Instance().Log().Debug("seed file:%s not exist", seedFile)
+		sm.app.Log().Debug("seed file:%s not exist", seedFile)
 		return 0
 	}
 
 	data, err := ioutil.ReadFile(seedFile)
 	if err != nil {
-		Instance().Log().Debug("read seed file:%s fail: %v", seedFile, err)
+		sm.app.Log().Debug("read seed file:%s fail: %v", seedFile, err)
 		return 0
 	}
 
 	seed, err := strconv.ParseInt(string(data), 10, 64)
 	if err != nil {
-		Instance().Log().Debug("seed file:%s invalid: %v", seedFile, err)
+		sm.app.Log().Debug("seed file:%s invalid: %v", seedFile, err)
 		return 0
 	}
 
@@ -138,7 +140,7 @@ func (sm *fileSaveManager) saveChunk(data *ChunkData) error {
 func (sm *fileSaveManager) LoadChunk(pos ChunkPos) *ChunkData {
 	chunkFileName := sm.chunkFileName(pos)
 	if _, err := os.Stat(chunkFileName); err != nil {
-		Instance().Log().Debug("%s not exist", chunkFileName)
+		sm.app.Log().Debug("%s not exist", chunkFileName)
 		return nil
 	}
 	data, err := ioutil.ReadFile(chunkFileName)
@@ -187,6 +189,6 @@ func (cd *ChunkData) posToKey(x, y, z int) cPos {
 }
 
 type BlockData struct {
-	Id    block.BlockId
-	State block.BlockState
+	Id    blockv2.BlockId
+	State uint8
 }

@@ -1,0 +1,37 @@
+[
+  {
+    "id": 2,
+    "name": "Grass",
+    "textures": [
+      "2_0.jpg",
+      "2_0.jpg",
+      "2_3.jpg",
+      "2_4.jpg",
+      "2_0.jpg",
+      "2_0.jpg"
+    ],
+    "lum": 0,
+    "dig_type": 1,
+    "dig_level": 2
+  },
+  {
+    "id": 3,
+    "name": "Brick",
+    "textures": [
+      "3_0.jpg"
+    ],
+    "lum": 0,
+    "dig_type": 1,
+    "dig_level": 4
+  },
+  {
+    "id": 4,
+    "name": "Lamp",
+    "textures": [
+      "4_0.jpg"
+    ],
+    "lum": 15,
+    "dig_type": 1,
+    "dig_level": 4
+  }
+]

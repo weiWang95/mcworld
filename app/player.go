@@ -14,6 +14,7 @@ import (
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/window"
 	"github.com/weiWang95/mcworld/app/block"
+	"github.com/weiWang95/mcworld/app/blockv2"
 )
 
 const PLAYER_JUMP_SPEED = 4.85 // 1.5: 5.42 1.2: 4.85
@@ -404,7 +405,7 @@ func (p *Player) PlaceBlock() {
 	case block.BlockFaceLeft:
 		pos = *(pos.Add(math32.NewVector3(-1, 0, 0)))
 	case block.BlockFaceRight:
-		pos = *(pos.Add(math32.NewVector3(0, 0, 1)))
+		pos = *(pos.Add(math32.NewVector3(1, 0, 0)))
 	case block.BlockFaceTop:
 		pos = *(pos.Add(math32.NewVector3(0, 1, 0)))
 	case block.BlockFaceBottom:
@@ -419,11 +420,13 @@ func (p *Player) PlaceBlock() {
 		return
 	}
 
-	nb := block.NewBlock(p.inventory[p.curInventoryIdx], pos)
+	// nb := block.NewBlock(p.inventory[p.curInventoryIdx], pos)
+	nb := Instance().bm.NewBlock(blockv2.BlockId(p.inventory[p.curInventoryIdx]))
+	nb.SetPositionVec(&pos)
 	Instance().curWorld.PlaceBlock(nb, pos)
 }
 
-func (p *Player) GetTarget() (block.IBlock, *math32.Vector3) {
+func (p *Player) GetTarget() (*blockv2.Block, *math32.Vector3) {
 	b, pos := RayTraceBlock(Instance().curWorld, *p.GetViewport(), p.farPos)
 	if b == nil || pos == nil {
 		return nil, nil
@@ -519,6 +522,10 @@ func (p *Player) onKey(evname string, ev interface{}) {
 			p.curInventoryIdx = 1
 		case window.Key3:
 			p.curInventoryIdx = 2
+		case window.Key9:
+			p.playMode = PlayModeCreate
+		case window.Key0:
+			p.playMode = PlayModeLife
 		}
 	case window.OnKeyUp:
 		switch kev.Key {
