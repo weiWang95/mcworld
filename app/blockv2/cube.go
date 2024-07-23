@@ -124,7 +124,7 @@ func (b *Cube) setLum(mesh *graphic.Mesh, lum uint8) {
 	if len(ms) == 0 {
 		return
 	}
-	ms[0].IMaterial().(*material.Standard).SetAmbientColor(math32.NewColor("white").MultiplyScalar(float32(lum)/15.0*0.8 + 0.2))
+	ms[0].IMaterial().(*material.Standard).SetColor(math32.NewColor("white").MultiplyScalar(float32(lum)/15.0*0.8 + 0.2))
 }
 
 func (b *Cube) GetFaceLum(idx int) uint8 {
@@ -132,7 +132,7 @@ func (b *Cube) GetFaceLum(idx int) uint8 {
 	if len(ms) == 0 {
 		return 0
 	}
-	return uint8((ms[0].IMaterial().(*material.Standard).AmbientColor().B - 0.2) / 0.8 * 15)
+	return uint8((ms[0].IMaterial().(*material.Standard).AmbientColor().B - 0.2) / 0.8 * 15.0)
 }
 
 func (b *Cube) SetTextures(textures []texture.Texture2D) {
@@ -156,7 +156,7 @@ func (b *Cube) setTexture(mesh *graphic.Mesh, tex *texture.Texture2D) {
 func (b *Cube) buildPlane() *graphic.Mesh {
 	p := geometry.NewPlane(1, 1)
 
-	mat := material.NewStandard(math32.NewColor("white"))
+	mat := material.NewStandard(math32.NewColor("black"))
 	mat.SetSide(material.SideFront)
 
 	mesh := graphic.NewMesh(p, mat)

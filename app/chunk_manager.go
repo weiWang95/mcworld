@@ -47,7 +47,7 @@ func NewChunkManager(app *App) *ChunkManager {
 	cm.Node = *core.NewNode()
 	cm.app = app
 
-	cm.loadDistance = 1
+	cm.loadDistance = 2
 	cm.renderDistance = 1
 
 	cm.loadingChunkMap = make(map[string]ChunkPos)

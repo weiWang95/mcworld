@@ -66,6 +66,7 @@ func (w *World) Update(a *App, t time.Duration) {
 			a.Log().Debug("sun level update: t:%v %v -> %v", w.curTime, w.sunLevel, newSunLevel)
 			w.sunLevel = newSunLevel
 			w.lu.UpdateSumLum()
+			w.lu.SwitchDayNight()
 		}
 	}
 }

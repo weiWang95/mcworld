@@ -77,7 +77,8 @@ type Player struct {
 	// ticker
 	wreckTicker     *TickChecker
 	curInventoryIdx uint8
-	inventory       [10]block.BlockId
+
+	inventory *PlayerInventory
 }
 
 func NewPlayer() *Player {
@@ -104,7 +105,7 @@ func NewPlayer() *Player {
 	p.wreckTicker = NewTickChecker(8)
 
 	p.playMode = PlayModeLife
-	p.inventory = [10]block.BlockId{block.BlockSoil, block.BlockBrick, block.BlockLamp}
+	p.inventory = NewPlayerInventory()
 
 	// Subscribe to events
 	gui.Manager().SetCursorFocus(p)
@@ -142,6 +143,8 @@ func (p *Player) Start(a *App) {
 	p.Add(p.Target)
 
 	a.Scene().Add(p)
+
+	p.initInventory()
 }
 
 func (p *Player) Update(a *App, t time.Duration) {
@@ -185,8 +188,8 @@ func (p *Player) Update(a *App, t time.Duration) {
 	p.Model.Update(a, t)
 
 	if p.wreckLine != nil {
-		pos := p.Camera.Position()
-		p.wreckLine.SetPositionVec(&pos)
+		pos := p.GetViewport()
+		p.wreckLine.SetPositionVec(pos)
 		p.wreckLine.LookAt(&p.farPos, &p.up)
 	}
 
@@ -197,6 +200,12 @@ func (p *Player) Update(a *App, t time.Duration) {
 
 func (p *Player) Cleanup() {
 
+}
+
+func (p *Player) initInventory() {
+	p.inventory.AddItem(blockv2.BlockId(2), 64)
+	p.inventory.AddItem(blockv2.BlockId(3), 64)
+	p.inventory.AddItem(blockv2.BlockId(4), 64)
 }
 
 func (p *Player) GetViewport() *math32.Vector3 {
@@ -421,7 +430,11 @@ func (p *Player) PlaceBlock() {
 	}
 
 	// nb := block.NewBlock(p.inventory[p.curInventoryIdx], pos)
-	nb := Instance().bm.NewBlock(blockv2.BlockId(p.inventory[p.curInventoryIdx]))
+	item := p.inventory.quickbar[p.curInventoryIdx]
+	if item == nil {
+		return
+	}
+	nb := Instance().bm.NewBlock(item.blockId)
 	nb.SetPositionVec(&pos)
 	Instance().curWorld.PlaceBlock(nb, pos)
 }

@@ -12,7 +12,8 @@
     ],
     "lum": 0,
     "dig_type": 1,
-    "dig_level": 2
+    "dig_level": 2,
+    "max_stack": 64
   },
   {
     "id": 3,
@@ -22,7 +23,8 @@
     ],
     "lum": 0,
     "dig_type": 1,
-    "dig_level": 4
+    "dig_level": 4,
+    "max_stack": 64
   },
   {
     "id": 4,
@@ -32,6 +34,7 @@
     ],
     "lum": 15,
     "dig_type": 1,
-    "dig_level": 4
+    "dig_level": 4,
+    "max_stack": 64
   }
 ]

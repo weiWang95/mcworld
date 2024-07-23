@@ -61,6 +61,8 @@ func Create() *App {
 	}
 
 	a := new(App)
+	instance = a
+
 	a.Application = app.App(800, 600, "Mc World")
 	a.debugMode = true
 
@@ -93,22 +95,11 @@ func Create() *App {
 	// a.player.ResetPosition(*math32.NewVector3(0, 50, 0))
 	// a.scene.Add(a.player)
 	// a.scene.Add(a.player.Camera)
-
-	a.player = NewPlayer()
-	a.player.Start(a)
-	a.player.SetPositionVec(*math32.NewVector3(0, 50, 0))
 	// a.scene.Add(a.player)
 	// a.scene.Add(a.player.Camera)
 
-	a.buildGui()
-
 	a.dirData = a.checkDirData("data")
 	a.log.Info("Using data directory:%s", a.dirData)
-
-	// Register Listen
-	gui.Manager().SubscribeID(window.OnKeyDown, &a, a.OnKeyDown)
-	a.Subscribe(window.OnWindowSize, a.OnWindowSize)
-	a.OnWindowSize("", nil)
 
 	a.setupScene()
 
@@ -120,7 +111,17 @@ func Create() *App {
 	a.curWorld = NewWorld()
 	a.curWorld.Start(a)
 
-	instance = a
+	a.player = NewPlayer()
+	a.player.Start(a)
+	a.player.SetPositionVec(*math32.NewVector3(0, 50, 0))
+
+	a.buildGui()
+
+	// Register Listen
+	gui.Manager().SubscribeID(window.OnKeyDown, &a, a.OnKeyDown)
+	a.Subscribe(window.OnWindowSize, a.OnWindowSize)
+	a.OnWindowSize("", nil)
+
 	return instance
 }
 

@@ -39,6 +39,7 @@ type BlockAttr struct {
 	BaseBlock
 	Lumable
 	Diggable
+	Stackable
 }
 
 type BlockId uint64

@@ -52,6 +52,24 @@ func (m *BlockManager) NewBlock(id BlockId) *Block {
 	return b
 }
 
+func (m *BlockManager) GetBlockAttr(id BlockId) *BlockAttr {
+	attr, ok := m.blockMap[id]
+	if ok {
+		return &attr
+	}
+
+	return nil
+}
+
+func (m *BlockManager) GetMaxStack(id BlockId) uint8 {
+	attr := m.GetBlockAttr(id)
+	if attr == nil {
+		return 1
+	}
+
+	return attr.MaxStack
+}
+
 func (m *BlockManager) initBlocks() {
 	for _, item := range m.loadBlockAttrs() {
 		m.blockMap[item.Id] = item
